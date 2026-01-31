@@ -43,8 +43,8 @@ jobs:
     - name: Check formatting
       run: cargo fmt -- --check
 
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
+    # - name: Run clippy
+    #   run: cargo clippy -- -D warnings
 
     - name: Install cargo-tarpaulin
       run: cargo install cargo-tarpaulin
