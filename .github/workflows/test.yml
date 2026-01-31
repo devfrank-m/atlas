@@ -45,3 +45,9 @@ jobs:
 
     - name: Run clippy
       run: cargo clippy -- -D warnings
+
+    - name: Install cargo-tarpaulin
+      run: cargo install cargo-tarpaulin
+
+    - name: Check coverage (minimum 70%)
+      run: cargo tarpaulin --fail-under 70
