@@ -1,2 +1,2 @@
-mod similarity;
 mod collections;
+mod similarity;

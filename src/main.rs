@@ -16,7 +16,4 @@ fn main() {
     let query = vec![6.0, 7.0, 8.0];
     let results = collection.search(query, 1);
     println!("{:?}", results);
-    
-    
-
 }

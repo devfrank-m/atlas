@@ -22,10 +22,16 @@ fn test_insert_and_search_cosine() {
     // most similar to x-axis query should be the x-axis vector
     assert_eq!(results[0].text, "x-axis");
     // x-axis vs x-axis => cosine similarity of 1.0
-    assert!((results[0].score - 1.0).abs() < 1e-6, "identical vectors should have score 1.0");
+    assert!(
+        (results[0].score - 1.0).abs() < 1e-6,
+        "identical vectors should have score 1.0"
+    );
     // x-axis vs y-axis => orthogonal, score 0.0
     assert_eq!(results[2].text, "y-axis");
-    assert!((results[2].score - 0.0).abs() < 1e-6, "orthogonal vectors should have score 0.0");
+    assert!(
+        (results[2].score - 0.0).abs() < 1e-6,
+        "orthogonal vectors should have score 0.0"
+    );
 }
 
 #[test]
@@ -38,9 +44,15 @@ fn test_insert_and_search_dot_product() {
 
     // dot(1,1)·(3,4) = 7, dot(1,1)·(1,2) = 3 — "b" ranked first
     assert_eq!(results[0].text, "b");
-    assert!((results[0].score - 7.0).abs() < 1e-6, "dot product of [1,1]·[3,4] should be 7.0");
+    assert!(
+        (results[0].score - 7.0).abs() < 1e-6,
+        "dot product of [1,1]·[3,4] should be 7.0"
+    );
     assert_eq!(results[1].text, "a");
-    assert!((results[1].score - 3.0).abs() < 1e-6, "dot product of [1,1]·[1,2] should be 3.0");
+    assert!(
+        (results[1].score - 3.0).abs() < 1e-6,
+        "dot product of [1,1]·[1,2] should be 3.0"
+    );
 }
 
 #[test]
@@ -54,9 +66,15 @@ fn test_insert_and_search_euclidean() {
     // nearest vector should rank first (higher score = closer)
     assert_eq!(results[0].text, "near");
     // distance 0 => score 1/(1+0) = 1.0
-    assert!((results[0].score - 1.0).abs() < 1e-6, "zero distance should produce score 1.0");
+    assert!(
+        (results[0].score - 1.0).abs() < 1e-6,
+        "zero distance should produce score 1.0"
+    );
     // far vector should have a lower score
-    assert!(results[1].score < results[0].score, "farther vector should have a lower score");
+    assert!(
+        results[1].score < results[0].score,
+        "farther vector should have a lower score"
+    );
 }
 
 #[test]
@@ -82,7 +100,10 @@ fn test_search_results_sorted_descending() {
 
     // scores should be in descending order
     for i in 0..results.len() - 1 {
-        assert!(results[i].score >= results[i + 1].score, "results should be sorted by score descending");
+        assert!(
+            results[i].score >= results[i + 1].score,
+            "results should be sorted by score descending"
+        );
     }
 }
 

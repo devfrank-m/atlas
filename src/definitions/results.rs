@@ -7,7 +7,6 @@ pub struct SearchResult {
     pub vector: Vec<f32>,
 }
 
-
 impl Debug for SearchResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SearchResult")
