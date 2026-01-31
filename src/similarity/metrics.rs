@@ -1,22 +1,14 @@
 pub fn cosine_similarity(vec1: &[f32], vec2: &[f32]) -> f32 {
-    assert_eq!(vec1.len(), vec2.len(), "Vectors must have the same dimension");
+    assert_eq!(
+        vec1.len(),
+        vec2.len(),
+        "Vectors must have the same dimension"
+    );
 
-    let mut dot_product = 0.0;
-    for i in 0..vec1.len() {
-        dot_product += vec1[i] * vec2[i];
-    }
+    let dot_product: f32 = vec1.iter().zip(vec2.iter()).map(|(a, b)| a * b).sum();
 
-    let mut vec1_magnitude = 0.0;
-    for i in 0..vec1.len() {
-        vec1_magnitude += vec1[i].powi(2);
-    }
-    vec1_magnitude = vec1_magnitude.sqrt();
-
-    let mut vec2_magnitude = 0.0;
-    for i in 0..vec2.len() {
-        vec2_magnitude += vec2[i].powi(2);
-    }
-    vec2_magnitude = vec2_magnitude.sqrt();
+    let vec1_magnitude: f32 = vec1.iter().map(|x| x.powi(2)).sum::<f32>().sqrt();
+    let vec2_magnitude: f32 = vec2.iter().map(|x| x.powi(2)).sum::<f32>().sqrt();
 
     if vec1_magnitude == 0.0 || vec2_magnitude == 0.0 {
         return 0.0;
@@ -26,22 +18,25 @@ pub fn cosine_similarity(vec1: &[f32], vec2: &[f32]) -> f32 {
 }
 
 pub fn dot_product(vec1: &[f32], vec2: &[f32]) -> f32 {
-    assert_eq!(vec1.len(), vec2.len(), "Vectors must have the same dimension");
-    
-    let mut result = 0.0;
-    for i in 0..vec1.len() {
-        result += vec1[i] * vec2[i];
-    }
-    result
+    assert_eq!(
+        vec1.len(),
+        vec2.len(),
+        "Vectors must have the same dimension"
+    );
+
+    vec1.iter().zip(vec2.iter()).map(|(a, b)| a * b).sum()
 }
 
 pub fn euclidean_distance(vec1: &[f32], vec2: &[f32]) -> f32 {
-    assert_eq!(vec1.len(), vec2.len(), "Vectors must have the same dimension");
+    assert_eq!(
+        vec1.len(),
+        vec2.len(),
+        "Vectors must have the same dimension"
+    );
 
-    let mut sum = 0.0;
-    for i in 0..vec1.len() {
-        let diff = vec1[i] - vec2[i];
-        sum += diff.powi(2);
-    }
-    sum.sqrt()
+    vec1.iter()
+        .zip(vec2.iter())
+        .map(|(a, b)| (a - b).powi(2))
+        .sum::<f32>()
+        .sqrt()
 }
