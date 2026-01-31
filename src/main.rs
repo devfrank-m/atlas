@@ -1,16 +1,19 @@
+mod definitions;
 mod similarity;
-use similarity::metrics;
+
+use definitions::collections::Collection;
+use definitions::collections::Metric;
 
 fn main() {
     let vec1 = vec![1.0, 2.0, 3.0];
-    let vec2 = vec![1.0, 3.0, 3.0];
+    let vec2 = vec![7.0, 8.0, 9.0];
 
-    let similarity = metrics::cosine_similarity(&vec1, &vec2);
-    println!("Similarity: {}", similarity);
+    let mut collection = Collection::new("test".to_string(), 3, Metric::Cosine);
 
-    let dot_product = metrics::dot_product(&vec1, &vec2);
-    println!("Dot Product: {}", dot_product);
+    collection.insert(vec1.clone(), "test1".to_string());
+    collection.insert(vec2.clone(), "test2".to_string());
 
-    let euclidean_distance = metrics::euclidean_distance(&vec1, &vec2);
-    println!("Euclidean Distance: {}", euclidean_distance);
+    let query = vec![6.0, 7.0, 8.0];
+    let results = collection.search(query, 1);
+    println!("{:?}", results);
 }
