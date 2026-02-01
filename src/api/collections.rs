@@ -1,7 +1,9 @@
-use axum::{Json, http::StatusCode, response::IntoResponse};
 use crate::api::schemas::CollectionCreateRequest;
+use axum::{Json, http::StatusCode, response::IntoResponse};
 
-pub async fn create_collection(Json(create_request): Json<CollectionCreateRequest>) -> impl IntoResponse {
+pub async fn create_collection(
+    Json(create_request): Json<CollectionCreateRequest>,
+) -> impl IntoResponse {
     (
         StatusCode::CREATED,
         Json(serde_json::json!({

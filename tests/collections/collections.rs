@@ -11,9 +11,9 @@ fn test_new_collection() {
 #[test]
 fn test_insert_and_search_cosine() {
     let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
-    col.insert(vec![1.0, 0.0, 0.0], "x-axis".to_string());
-    col.insert(vec![0.0, 1.0, 0.0], "y-axis".to_string());
-    col.insert(vec![1.0, 1.0, 0.0], "diagonal".to_string());
+    col.insert(vec![1.0, 0.0, 0.0], "x-axis".to_string(), None);
+    col.insert(vec![0.0, 1.0, 0.0], "y-axis".to_string(), None);
+    col.insert(vec![1.0, 1.0, 0.0], "diagonal".to_string(), None);
 
     let results = col.search(vec![1.0, 0.0, 0.0], 3);
 
@@ -37,8 +37,8 @@ fn test_insert_and_search_cosine() {
 #[test]
 fn test_insert_and_search_dot_product() {
     let mut col = Collection::new("test".to_string(), 2, Metric::DotProduct);
-    col.insert(vec![1.0, 2.0], "a".to_string());
-    col.insert(vec![3.0, 4.0], "b".to_string());
+    col.insert(vec![1.0, 2.0], "a".to_string(), None);
+    col.insert(vec![3.0, 4.0], "b".to_string(), None);
 
     let results = col.search(vec![1.0, 1.0], 2);
 
@@ -58,8 +58,8 @@ fn test_insert_and_search_dot_product() {
 #[test]
 fn test_insert_and_search_euclidean() {
     let mut col = Collection::new("test".to_string(), 2, Metric::Euclidean);
-    col.insert(vec![1.0, 0.0], "near".to_string());
-    col.insert(vec![10.0, 10.0], "far".to_string());
+    col.insert(vec![1.0, 0.0], "near".to_string(), None);
+    col.insert(vec![10.0, 10.0], "far".to_string(), None);
 
     let results = col.search(vec![1.0, 0.0], 2);
 
@@ -81,7 +81,7 @@ fn test_insert_and_search_euclidean() {
 fn test_search_k_limits_results() {
     let mut col = Collection::new("test".to_string(), 2, Metric::Cosine);
     for i in 0..10 {
-        col.insert(vec![i as f32, 1.0], format!("vec_{}", i));
+        col.insert(vec![i as f32, 1.0], format!("vec_{}", i), None);
     }
 
     let results = col.search(vec![1.0, 0.0], 3);
@@ -92,9 +92,9 @@ fn test_search_k_limits_results() {
 #[test]
 fn test_search_results_sorted_descending() {
     let mut col = Collection::new("test".to_string(), 2, Metric::Cosine);
-    col.insert(vec![0.0, 1.0], "orthogonal".to_string());
-    col.insert(vec![1.0, 0.0], "identical".to_string());
-    col.insert(vec![1.0, 1.0], "diagonal".to_string());
+    col.insert(vec![0.0, 1.0], "orthogonal".to_string(), None);
+    col.insert(vec![1.0, 0.0], "identical".to_string(), None);
+    col.insert(vec![1.0, 1.0], "diagonal".to_string(), None);
 
     let results = col.search(vec![1.0, 0.0], 3);
 
@@ -111,7 +111,7 @@ fn test_search_results_sorted_descending() {
 fn test_search_result_contains_correct_vector() {
     let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
     let v = vec![1.0, 2.0, 3.0];
-    col.insert(v.clone(), "target".to_string());
+    col.insert(v.clone(), "target".to_string(), None);
 
     let results = col.search(vec![1.0, 2.0, 3.0], 1);
     // returned vector should match the inserted one
@@ -123,7 +123,7 @@ fn test_search_result_contains_correct_vector() {
 #[should_panic(expected = "Vector dimension does not match")]
 fn test_insert_wrong_dimension_panics() {
     let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
-    col.insert(vec![1.0, 2.0], "bad".to_string());
+    col.insert(vec![1.0, 2.0], "bad".to_string(), None);
 }
 
 #[test]
