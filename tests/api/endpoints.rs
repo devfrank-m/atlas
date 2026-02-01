@@ -57,9 +57,7 @@ async fn test_get_collection() {
 #[tokio::test]
 async fn test_get_collection_not_found() {
     let server = test_server();
-    let resp = server
-        .get("/collections/00000000000000000000000000")
-        .await;
+    let resp = server.get("/collections/00000000000000000000000000").await;
     resp.assert_status(StatusCode::NOT_FOUND);
 }
 
