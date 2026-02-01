@@ -3,7 +3,7 @@ use crate::api::schemas::{
     CollectionCreateRequest, CollectionCreateResponse, CollectionDetailResponse, SearchRequest,
     SearchResponse, SearchResultResponse, VectorInsertRequest, VectorInsertResponse,
 };
-use atlas::definitions::collections::{Collection, Metric};
+use crate::definitions::collections::{Collection, Metric};
 use axum::{
     Json,
     extract::{Path, State},

@@ -1,11 +1,4 @@
-mod api;
-
-use api::collections::{create_collection, get_collection, insert_vector, search_collection};
-use api::{AppState, AppStateInner};
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use atlas::api::{AppState, AppStateInner, build_router};
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -19,14 +12,7 @@ async fn main() {
         .init();
 
     let state: AppState = Arc::new(AppStateInner::new());
-
-    let app = Router::new()
-        .route("/collections", post(create_collection))
-        .route("/collections/{id}", get(get_collection))
-        .route("/collections/{id}/vectors", post(insert_vector))
-        .route("/collections/{id}/search", post(search_collection))
-        .with_state(state)
-        .layer(TraceLayer::new_for_http());
+    let app = build_router(state).layer(TraceLayer::new_for_http());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8600").await.unwrap();
     info!("Server running on http://0.0.0.0:8600");
