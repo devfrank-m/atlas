@@ -1,5 +1,6 @@
 use crate::definitions::results::SearchResult;
 use crate::similarity;
+use ulid::Ulid;
 
 pub enum Metric {
     Cosine,
@@ -8,17 +9,19 @@ pub enum Metric {
 }
 
 pub struct Collection {
-    name: String,
-    dimension: usize,
-    metric: Metric,
-    vectors: Vec<Vec<f32>>,
-    metadata: Vec<String>,
-    external_ids: Option<Vec<String>>,
+    pub id: Ulid,
+    pub name: String,
+    pub dimension: usize,
+    pub metric: Metric,
+    pub vectors: Vec<Vec<f32>>,
+    pub metadata: Vec<String>,
+    pub external_ids: Option<Vec<String>>,
 }
 
 impl Collection {
     pub fn new(name: String, dimension: usize, metric: Metric) -> Self {
         Self {
+            id: Ulid::new(),
             name,
             dimension,
             metric,
@@ -63,7 +66,6 @@ impl Collection {
 
         let mut results = Vec::new();
         for (i, vector) in self.vectors.iter().enumerate() {
-            
             // loop through all vectors and calculate the similarity score
             // highly inefficient, but will be optimized later
             let score = match self.metric {
@@ -98,6 +100,7 @@ impl Collection {
 impl std::fmt::Debug for Collection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Collection")
+            .field("id", &self.id.to_string())
             .field("name", &self.name)
             .field("dimension", &self.dimension)
             .finish()

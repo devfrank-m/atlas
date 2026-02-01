@@ -1,4 +1,5 @@
 use atlas::definitions::collections::{Collection, Metric};
+use ulid::Ulid;
 
 #[test]
 fn test_new_collection() {
@@ -6,6 +7,16 @@ fn test_new_collection() {
     let results = col.search(vec![1.0, 0.0, 0.0], 10);
     // empty collection returns no results
     assert_eq!(results.len(), 0);
+}
+
+#[test]
+fn test_collection_has_unique_id() {
+    let col1 = Collection::new("test".to_string(), 3, Metric::Cosine);
+    let col2 = Collection::new("test".to_string(), 3, Metric::Cosine);
+    // each collection gets a unique ULID
+    assert_ne!(col1.id, col2.id);
+    // id should be a valid ULID string
+    assert!(col1.id.to_string().parse::<Ulid>().is_ok());
 }
 
 #[test]
