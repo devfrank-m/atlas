@@ -1,19 +1,20 @@
-mod definitions;
-mod similarity;
+use atlas::api::{AppState, AppStateInner, build_router};
+use std::sync::Arc;
+use tower_http::trace::TraceLayer;
+use tracing::info;
 
-use definitions::collections::Collection;
-use definitions::collections::Metric;
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::new(
+            "atlas=debug,tower_http=debug",
+        ))
+        .init();
 
-fn main() {
-    let vec1 = vec![1.0, 2.0, 3.0];
-    let vec2 = vec![7.0, 8.0, 9.0];
+    let state: AppState = Arc::new(AppStateInner::new());
+    let app = build_router(state).layer(TraceLayer::new_for_http());
 
-    let mut collection = Collection::new("test".to_string(), 3, Metric::Cosine);
-
-    collection.insert(vec1.clone(), "test1".to_string());
-    collection.insert(vec2.clone(), "test2".to_string());
-
-    let query = vec![6.0, 7.0, 8.0];
-    let results = collection.search(query, 1);
-    println!("{:?}", results);
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8600").await.unwrap();
+    info!("Server running on http://0.0.0.0:8600");
+    axum::serve(listener, app).await.unwrap();
 }

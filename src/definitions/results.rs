@@ -5,6 +5,7 @@ pub struct SearchResult {
     pub score: f32,
     pub text: String,
     pub vector: Vec<f32>,
+    pub external_id: Option<String>,
 }
 
 impl Debug for SearchResult {
@@ -14,6 +15,7 @@ impl Debug for SearchResult {
             .field("score", &self.score)
             .field("text", &self.text)
             .field("vector", &self.vector)
+            .field("external_id", &self.external_id)
             .finish()
     }
 }
