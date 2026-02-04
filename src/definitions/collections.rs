@@ -1,4 +1,5 @@
 use crate::definitions::results::SearchResult;
+use crate::search::heap::TopKHeap;
 use crate::similarity;
 use ulid::Ulid;
 
@@ -49,14 +50,6 @@ impl Collection {
         }
     }
 
-    fn sort_vector_results(&self, results: &mut Vec<SearchResult>) {
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-    }
-
     pub fn search(&self, query: Vec<f32>, k: usize) -> Vec<SearchResult> {
         assert_eq!(
             query.len(),
@@ -64,10 +57,13 @@ impl Collection {
             "Query dimension does not match collection dimension"
         );
 
-        let mut results = Vec::new();
+        if k == 0 {
+            return Vec::new();
+        }
+
+        let mut top_k = TopKHeap::new(k);
+
         for (i, vector) in self.vectors.iter().enumerate() {
-            // loop through all vectors and calculate the similarity score
-            // highly inefficient, but will be optimized later
             let score = match self.metric {
                 Metric::Cosine => similarity::metrics::cosine_similarity(&query, &vector),
                 Metric::DotProduct => similarity::metrics::dot_product(&query, &vector),
@@ -77,23 +73,22 @@ impl Collection {
                 }
             };
 
-            results.push(SearchResult {
-                id: i,
+            top_k.push(
                 score,
-                text: self.metadata[i].clone(),
-                vector: vector.clone(),
-                external_id: match self.external_ids {
-                    Some(ref external_ids) => Some(external_ids[i].clone()),
-                    None => None,
+                SearchResult {
+                    id: i,
+                    score,
+                    text: self.metadata[i].clone(),
+                    vector: vector.clone(),
+                    external_id: match self.external_ids {
+                        Some(ref external_ids) => Some(external_ids[i].clone()),
+                        None => None,
+                    },
                 },
-            });
+            );
         }
 
-        // sort
-        self.sort_vector_results(&mut results);
-
-        results.truncate(k);
-        results
+        top_k.into_sorted_vec()
     }
 }
 
