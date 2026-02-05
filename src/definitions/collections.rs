@@ -78,7 +78,7 @@ impl Collection {
         if self.index.is_empty() {
             return Vec::new();
         }
-        
+
         let index_results = self.index.search(query, k);
         let mut search_results = Vec::with_capacity(index_results.len());
 
