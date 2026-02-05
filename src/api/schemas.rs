@@ -51,7 +51,7 @@ pub struct SearchResultResponse {
     pub id: usize,
     pub score: f32,
     pub text: String,
-    pub vector: Vec<f32>,
+    pub vector: Option<Vec<f32>>,
     pub external_id: Option<String>,
 }
 

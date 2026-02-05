@@ -224,18 +224,18 @@ fn test_create_collection_returns_id() {
     assert!(!col.id.to_string().is_empty());
     assert_eq!(col.name, "my_collection");
     assert_eq!(col.dimension, 128);
-    assert_eq!(col.vectors.len(), 0);
+    assert_eq!(col.index.len(), 0);
 }
 
 #[test]
 fn test_insert_vector_returns_sequential_ids() {
     let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
 
-    let id0 = col.vectors.len();
+    let id0 = col.index.len();
     col.insert(vec![1.0, 0.0, 0.0], "first".to_string(), None);
     assert_eq!(id0, 0);
 
-    let id1 = col.vectors.len();
+    let id1 = col.index.len();
     col.insert(vec![0.0, 1.0, 0.0], "second".to_string(), None);
     assert_eq!(id1, 1);
 }
@@ -249,7 +249,7 @@ fn test_collection_detail_fields() {
     assert_eq!(col.id.to_string().len(), 26);
     assert_eq!(col.name, "details_test");
     assert_eq!(col.dimension, 3);
-    assert_eq!(col.vectors.len(), 2);
+    assert_eq!(col.index.len(), 2);
 }
 
 #[test]

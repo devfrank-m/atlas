@@ -1,8 +1,9 @@
 use crate::definitions::results::SearchResult;
-use crate::search::heap::TopKHeap;
-use crate::similarity;
+use crate::index::base::Index;
+use crate::index::flat_index::FlatIndex;
 use ulid::Ulid;
 
+#[derive(Clone)]
 pub enum Metric {
     Cosine,
     Euclidean,
@@ -14,7 +15,7 @@ pub struct Collection {
     pub name: String,
     pub dimension: usize,
     pub metric: Metric,
-    pub vectors: Vec<Vec<f32>>,
+    pub index: Box<dyn Index>,
     pub metadata: Vec<String>,
     pub external_ids: Option<Vec<String>>,
 }
@@ -25,8 +26,12 @@ impl Collection {
             id: Ulid::new(),
             name,
             dimension,
+            index: Box::new(FlatIndex {
+                vectors: Vec::new(),
+                dimension,
+                metric: metric.clone(),
+            }),
             metric,
-            vectors: Vec::new(),
             metadata: Vec::new(),
             external_ids: None,
         }
@@ -39,13 +44,22 @@ impl Collection {
             "Vector dimension does not match collection dimension"
         );
 
-        self.vectors.push(vector);
+        self.index.insert(vector);
         self.metadata.push(metadata);
 
-        if let Some(external_id) = external_id {
-            match self.external_ids {
+        // not very readable, is it?
+        match external_id {
+            Some(external_id) => match self.external_ids {
                 Some(ref mut external_ids) => external_ids.push(external_id),
                 None => self.external_ids = Some(vec![external_id]),
+            },
+            None => {
+                // TODO: we should probably have a better way to handle this,
+                // but for now we just push an empty string to keep the indices aligned
+                match self.external_ids {
+                    Some(ref mut external_ids) => external_ids.push(String::new()),
+                    None => self.external_ids = Some(vec![String::new()]),
+                }
             }
         }
     }
@@ -61,34 +75,36 @@ impl Collection {
             return Vec::new();
         }
 
-        let mut top_k = TopKHeap::new(k);
-
-        for (i, vector) in self.vectors.iter().enumerate() {
-            let score = match self.metric {
-                Metric::Cosine => similarity::metrics::cosine_similarity(&query, &vector),
-                Metric::DotProduct => similarity::metrics::dot_product(&query, &vector),
-                Metric::Euclidean => {
-                    let distance = similarity::metrics::euclidean_distance(&query, &vector);
-                    1.0 / (1.0 + distance)
-                }
-            };
-
-            top_k.push(
-                score,
-                SearchResult {
-                    id: i,
-                    score,
-                    text: self.metadata[i].clone(),
-                    vector: vector.clone(),
-                    external_id: match self.external_ids {
-                        Some(ref external_ids) => Some(external_ids[i].clone()),
-                        None => None,
-                    },
-                },
-            );
+        if self.index.is_empty() {
+            return Vec::new();
         }
 
-        top_k.into_sorted_vec()
+        let index_results = self.index.search(query, k);
+        let mut search_results = Vec::with_capacity(index_results.len());
+
+        for index_result in index_results {
+            let metadata = self
+                .metadata
+                .get(index_result.id)
+                .cloned()
+                .unwrap_or_default();
+            let external_id = self
+                .external_ids
+                .as_ref()
+                .and_then(|ids| ids.get(index_result.id))
+                .cloned()
+                .filter(|s| !s.is_empty());
+            let vector = self.index.get(index_result.id).cloned();
+            search_results.push(SearchResult {
+                id: index_result.id,
+                score: index_result.score,
+                text: metadata,
+                vector,
+                external_id,
+            });
+        }
+
+        search_results
     }
 }
 
