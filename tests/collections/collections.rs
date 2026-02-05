@@ -126,7 +126,7 @@ fn test_search_result_contains_correct_vector() {
 
     let results = col.search(vec![1.0, 2.0, 3.0], 1);
     // returned vector should match the inserted one
-    assert_eq!(results[0].vector, v);
+    assert_eq!(results[0].vector, Some(v));
     assert_eq!(results[0].id, 0, "first inserted vector should have id 0");
 }
 

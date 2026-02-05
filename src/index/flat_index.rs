@@ -1,5 +1,5 @@
 use crate::definitions::collections::Metric;
-use crate::definitions::results::{IndexSearchResult, SearchResult};
+use crate::definitions::results::IndexSearchResult;
 use crate::index::base::Index;
 use crate::search::heap::TopKHeap;
 use crate::similarity;
@@ -42,5 +42,13 @@ impl Index for FlatIndex {
         }
 
         top_k.into_sorted_vec()
+    }
+
+    fn get(&self, id: usize) -> Option<&Vec<f32>> {
+        self.vectors.get(id)
+    }
+
+    fn len(&self) -> usize {
+        self.vectors.len()
     }
 }

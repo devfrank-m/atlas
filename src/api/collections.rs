@@ -78,7 +78,7 @@ pub async fn get_collection(
                 name: col.name.clone(),
                 dimension: col.dimension,
                 metric: metric_to_string(&col.metric).to_string(),
-                vector_count: col.vectors.len(),
+                vector_count: col.index.len(),
             };
             (StatusCode::OK, Json(resp)).into_response()
         }
@@ -118,7 +118,7 @@ pub async fn insert_vector(
                 )
                     .into_response();
             }
-            let vector_id = col.vectors.len();
+            let vector_id = col.index.len();
             col.insert(req.vector, req.metadata, req.external_id);
             (
                 StatusCode::CREATED,

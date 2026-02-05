@@ -1,10 +1,9 @@
 use crate::definitions::results::SearchResult;
 use crate::index::base::Index;
 use crate::index::flat_index::FlatIndex;
-use crate::search::heap::TopKHeap;
-use crate::similarity;
 use ulid::Ulid;
 
+#[derive(Clone)]
 pub enum Metric {
     Cosine,
     Euclidean,
@@ -27,12 +26,12 @@ impl Collection {
             id: Ulid::new(),
             name,
             dimension,
-            metric,
             index: Box::new(FlatIndex {
                 vectors: Vec::new(),
                 dimension,
                 metric: metric.clone(),
             }),
+            metric,
             metadata: Vec::new(),
             external_ids: None,
         }
@@ -72,6 +71,14 @@ impl Collection {
             "Query dimension does not match collection dimension"
         );
 
+        if k == 0 {
+            return Vec::new();
+        }
+
+        if self.index.is_empty() {
+            return Vec::new();
+        }
+        
         let index_results = self.index.search(query, k);
         let mut search_results = Vec::with_capacity(index_results.len());
 
@@ -85,12 +92,14 @@ impl Collection {
                 .external_ids
                 .as_ref()
                 .and_then(|ids| ids.get(index_result.id))
-                .cloned();
+                .cloned()
+                .filter(|s| !s.is_empty());
+            let vector = self.index.get(index_result.id).cloned();
             search_results.push(SearchResult {
                 id: index_result.id,
                 score: index_result.score,
                 text: metadata,
-                vector: None,
+                vector,
                 external_id,
             });
         }
