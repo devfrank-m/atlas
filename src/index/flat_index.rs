@@ -1,24 +1,21 @@
+use crate::definitions::collections::Metric;
+use crate::definitions::results::{IndexSearchResult, SearchResult};
 use crate::index::base::Index;
+use crate::search::heap::TopKHeap;
+use crate::similarity;
 
 pub struct FlatIndex {
     pub vectors: Vec<Vec<f32>>,
-    pub metadata: Vec<String>,
-    pub external_ids: Option<Vec<String>>,
+    pub dimension: usize,
+    pub metric: Metric,
 }
 
 impl Index for FlatIndex {
-    fn insert(&mut self, vector: Vec<f32>, metadata: String, external_id: Option<String>) {
+    fn insert(&mut self, vector: Vec<f32>) {
         self.vectors.push(vector);
-        self.metadata.push(metadata);
-        if let Some(external_id) = external_id {
-            match self.external_ids {
-                Some(ref mut external_ids) => external_ids.push(external_id),
-                None => self.external_ids = Some(vec![external_id]),
-            }
-        }
     }
 
-    fn search(&self, query: Vec<f32>, k: usize) -> Vec<SearchResult> {
+    fn search(&self, query: Vec<f32>, k: usize) -> Vec<IndexSearchResult> {
         assert_eq!(
             query.len(),
             self.dimension,
@@ -41,19 +38,7 @@ impl Index for FlatIndex {
                 }
             };
 
-            top_k.push(
-                score,
-                SearchResult {
-                    id: i,
-                    score,
-                    text: self.metadata[i].clone(),
-                    vector: vector.clone(),
-                    external_id: match self.external_ids {
-                        Some(ref external_ids) => Some(external_ids[i].clone()),
-                        None => None,
-                    },
-                },
-            );
+            top_k.push(score, IndexSearchResult { id: i, score });
         }
 
         top_k.into_sorted_vec()
