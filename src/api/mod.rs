@@ -15,6 +15,12 @@ pub struct AppStateInner {
     pub collections: Mutex<Vec<Collection>>,
 }
 
+impl Default for AppStateInner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppStateInner {
     pub fn new() -> Self {
         Self {
