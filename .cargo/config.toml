@@ -1,2 +1,2 @@
 [alias]
-benchmark = "test --test lib benchmarks --release -- --nocapture"
+benchmark = "run --example bench_insert --release"

@@ -2,7 +2,7 @@ use atlas::definitions::collections::{Collection, Metric};
 use rand::Rng;
 use std::time::Instant;
 
-const NUM_VECTORS: usize = 100000;
+const NUM_VECTORS: usize = 100_000;
 const DIMENSION: usize = 768;
 
 fn generate_random_vectors(count: usize, dim: usize) -> Vec<Vec<f32>> {
@@ -12,12 +12,15 @@ fn generate_random_vectors(count: usize, dim: usize) -> Vec<Vec<f32>> {
         .collect()
 }
 
-#[test]
-fn bench_insert_10k_vectors() {
+fn main() {
+    let mut rng = rand::thread_rng();
+
+    println!("Generating {NUM_VECTORS} random vectors (dim={DIMENSION})...");
     let vectors = generate_random_vectors(NUM_VECTORS, DIMENSION);
 
     let mut collection = Collection::new("bench".to_string(), DIMENSION, Metric::Cosine);
 
+    // --- Insert benchmark ---
     let start = Instant::now();
     for (i, v) in vectors.into_iter().enumerate() {
         collection.insert(v, format!("meta-{i}"), None);
@@ -34,19 +37,7 @@ fn bench_insert_10k_vectors() {
         NUM_VECTORS as f64 / elapsed.as_secs_f64()
     );
 
-    assert_eq!(collection.vectors.len(), NUM_VECTORS);
-}
-
-#[test]
-fn bench_search_after_10k_inserts() {
-    let mut rng = rand::thread_rng();
-    let vectors = generate_random_vectors(NUM_VECTORS, DIMENSION);
-
-    let mut collection = Collection::new("bench".to_string(), DIMENSION, Metric::Cosine);
-    for (i, v) in vectors.into_iter().enumerate() {
-        collection.insert(v, format!("meta-{i}"), None);
-    }
-
+    // --- Search benchmark ---
     let query: Vec<f32> = (0..DIMENSION).map(|_| rng.gen_range(-1.0..1.0)).collect();
     let k = 10;
 
@@ -58,6 +49,5 @@ fn bench_search_after_10k_inserts() {
     println!("Vectors:    {NUM_VECTORS}");
     println!("Dimension:  {DIMENSION}");
     println!("Search time: {elapsed:?}");
-
-    assert_eq!(results.len(), k);
+    println!("Results:    {}", results.len());
 }
