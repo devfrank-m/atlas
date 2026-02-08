@@ -1,0 +1,2 @@
+[alias]
+benchmark = "test --test lib benchmarks --release -- --nocapture"

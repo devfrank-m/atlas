@@ -17,3 +17,4 @@ tower-http = { version = "0.6.8", features = ["trace"] }
 axum-test = "18.7.0"
 http-body-util = "0.1.3"
 tower-http = "0.6.8"
+rand = "0.8"
