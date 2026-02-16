@@ -44,8 +44,8 @@ impl Index for FlatIndex {
         top_k.into_sorted_vec()
     }
 
-    fn get(&self, id: usize) -> Option<&Vec<f32>> {
-        self.vectors.get(id)
+    fn get(&self, id: usize) -> Option<&[f32]> {
+        self.vectors.get(id).map(|v| v.as_slice())
     }
 
     fn len(&self) -> usize {

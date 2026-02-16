@@ -1,2 +1,2 @@
 [alias]
-benchmark = "run --example bench_insert --release"
+benchmark = "run --benchmarks bench_insert --release"
