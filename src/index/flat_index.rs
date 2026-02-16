@@ -30,10 +30,10 @@ impl Index for FlatIndex {
 
         for (i, vector) in self.vectors.iter().enumerate() {
             let score = match self.metric {
-                Metric::Cosine => similarity::metrics::cosine_similarity(&query, &vector),
-                Metric::DotProduct => similarity::metrics::dot_product(&query, &vector),
+                Metric::Cosine => similarity::metrics::cosine_similarity(&query, vector),
+                Metric::DotProduct => similarity::metrics::dot_product(&query, vector),
                 Metric::Euclidean => {
-                    let distance = similarity::metrics::euclidean_distance(&query, &vector);
+                    let distance = similarity::metrics::euclidean_distance(&query, vector);
                     1.0 / (1.0 + distance)
                 }
             };
