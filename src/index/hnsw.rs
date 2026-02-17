@@ -3,7 +3,6 @@ use std::collections::BinaryHeap;
 
 use rand::RngExt;
 
-
 use crate::definitions::collections::Metric;
 use crate::definitions::results::IndexSearchResult;
 use crate::index::base::Index;
@@ -217,10 +216,12 @@ pub struct HnswIndex {
 
 impl HnswIndex {
     pub fn new(dimension: usize, metric: Metric, m: usize, ef_construction: usize) -> Self {
-
         assert!(m > 1, "M must be greater than 1");
-        assert!(ef_construction > 0, "EF Construction must be greater than 0");
-        
+        assert!(
+            ef_construction > 0,
+            "EF Construction must be greater than 0"
+        );
+
         Self {
             vectors: Vec::new(),
             nodes: Vec::new(),
