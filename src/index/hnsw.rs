@@ -1,7 +1,8 @@
 use std::cmp::{Ordering, Reverse};
 use std::collections::BinaryHeap;
 
-use rand::Rng;
+use rand::RngExt;
+
 
 use crate::definitions::collections::Metric;
 use crate::definitions::results::IndexSearchResult;
@@ -249,7 +250,7 @@ impl HnswIndex {
     }
 
     fn random_level(&self) -> usize {
-        let r: f64 = rand::thread_rng().gen_range(0.0..1.0);
+        let r: f64 = rand::rng().random_range(0.0..1.0);
         (-r.ln() * self.level_mult).floor() as usize
     }
 }

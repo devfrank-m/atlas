@@ -157,16 +157,16 @@ fn test_many_inserts() {
 
 #[test]
 fn test_recall_against_flat_index() {
-    use rand::Rng;
+    use rand::RngExt;
 
     let dim = 32;
     let n = 1000;
     let k = 10;
     let num_queries = 20;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let vectors: Vec<Vec<f32>> = (0..n)
-        .map(|_| (0..dim).map(|_| rng.gen_range(-1.0..1.0)).collect())
+        .map(|_| (0..dim).map(|_| rng.random_range(-1.0f32..1.0)).collect())
         .collect();
 
     let mut flat = FlatIndex {
@@ -184,7 +184,7 @@ fn test_recall_against_flat_index() {
 
     let mut total_recall = 0.0;
     for _ in 0..num_queries {
-        let query: Vec<f32> = (0..dim).map(|_| rng.gen_range(-1.0..1.0)).collect();
+        let query: Vec<f32> = (0..dim).map(|_| rng.random_range(-1.0f32..1.0)).collect();
 
         let flat_ids: HashSet<usize> = flat.search(query.clone(), k).iter().map(|r| r.id).collect();
         let hnsw_ids: HashSet<usize> = hnsw.search(query, k).iter().map(|r| r.id).collect();
@@ -202,16 +202,16 @@ fn test_recall_against_flat_index() {
 
 #[test]
 fn test_higher_ef_search_improves_recall() {
-    use rand::Rng;
+    use rand::RngExt;
 
     let dim = 32;
     let n = 500;
     let k = 10;
     let num_queries = 20;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let vectors: Vec<Vec<f32>> = (0..n)
-        .map(|_| (0..dim).map(|_| rng.gen_range(-1.0..1.0)).collect())
+        .map(|_| (0..dim).map(|_| rng.random_range(-1.0f32..1.0)).collect())
         .collect();
 
     let mut flat = FlatIndex {
@@ -227,7 +227,7 @@ fn test_higher_ef_search_improves_recall() {
     }
 
     let queries: Vec<Vec<f32>> = (0..num_queries)
-        .map(|_| (0..dim).map(|_| rng.gen_range(-1.0..1.0)).collect())
+        .map(|_| (0..dim).map(|_| rng.random_range(-1.0f32..1.0)).collect())
         .collect();
 
     let compute_recall = |hnsw: &HnswIndex, flat: &FlatIndex| -> f64 {
