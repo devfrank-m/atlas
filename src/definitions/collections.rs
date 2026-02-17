@@ -3,7 +3,7 @@ use crate::index::base::Index;
 use crate::index::flat_index::FlatIndex;
 use ulid::Ulid;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum Metric {
     Cosine,
     Euclidean,
@@ -94,7 +94,7 @@ impl Collection {
                 .and_then(|ids| ids.get(index_result.id))
                 .cloned()
                 .filter(|s| !s.is_empty());
-            let vector = self.index.get(index_result.id).cloned();
+            let vector = self.index.get(index_result.id).map(|v| v.to_vec());
             search_results.push(SearchResult {
                 id: index_result.id,
                 score: index_result.score,
