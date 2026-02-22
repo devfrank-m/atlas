@@ -1,6 +1,7 @@
+use crate::definitions::metadata::Metadata;
 use crate::definitions::results::SearchResult;
 use crate::index::base::Index;
-use crate::index::flat_index::FlatIndex;
+use crate::index::flat::FlatIndex;
 use ulid::Ulid;
 
 #[derive(Clone, Copy)]
@@ -16,7 +17,7 @@ pub struct Collection {
     pub dimension: usize,
     pub metric: Metric,
     pub index: Box<dyn Index>,
-    pub metadata: Vec<String>,
+    pub metadata: Vec<Metadata>,
     pub external_ids: Option<Vec<String>>,
 }
 
@@ -37,7 +38,7 @@ impl Collection {
         }
     }
 
-    pub fn insert(&mut self, vector: Vec<f32>, metadata: String, external_id: Option<String>) {
+    pub fn insert(&mut self, vector: Vec<f32>, metadata: Metadata, external_id: Option<String>) {
         assert_eq!(
             vector.len(),
             self.dimension,
@@ -98,7 +99,8 @@ impl Collection {
             search_results.push(SearchResult {
                 id: index_result.id,
                 score: index_result.score,
-                text: metadata,
+                text: "metadata".parse().unwrap(),
+                metadata,
                 vector,
                 external_id,
             });

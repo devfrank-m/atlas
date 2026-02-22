@@ -3,6 +3,8 @@ use crate::api::schemas::{
     CollectionCreateRequest, CollectionCreateResponse, CollectionDetailResponse, SearchRequest,
     SearchResponse, SearchResultResponse, VectorInsertRequest, VectorInsertResponse,
 };
+use crate::common::api::bad_request;
+use crate::common::utils::parse_ulid;
 use crate::definitions::collections::{Collection, Metric};
 use axum::{
     Json,
@@ -10,7 +12,6 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use ulid::Ulid;
 
 fn parse_metric(s: &str) -> Option<Metric> {
     match s.to_lowercase().as_str() {
@@ -59,14 +60,10 @@ pub async fn get_collection(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let ulid = match id.parse::<Ulid>() {
+    let ulid = match parse_ulid(&id) {
         Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid collection ID"})),
-            )
-                .into_response();
+        Err(e) => {
+            return bad_request(e.to_string());
         }
     };
 
@@ -95,14 +92,10 @@ pub async fn insert_vector(
     Path(id): Path<String>,
     Json(req): Json<VectorInsertRequest>,
 ) -> impl IntoResponse {
-    let ulid = match id.parse::<Ulid>() {
+    let ulid = match parse_ulid(&id) {
         Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid collection ID"})),
-            )
-                .into_response();
+        Err(e) => {
+            return bad_request(e.to_string());
         }
     };
 
@@ -119,6 +112,7 @@ pub async fn insert_vector(
                     .into_response();
             }
             let vector_id = col.index.len();
+            let metadata = req.metadata.clone();
             col.insert(req.vector, req.metadata, req.external_id);
             (
                 StatusCode::CREATED,
@@ -139,17 +133,12 @@ pub async fn search_collection(
     Path(id): Path<String>,
     Json(req): Json<SearchRequest>,
 ) -> impl IntoResponse {
-    let ulid = match id.parse::<Ulid>() {
+    let ulid = match parse_ulid(&id) {
         Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid collection ID"})),
-            )
-                .into_response();
+        Err(e) => {
+            return bad_request(e.to_string());
         }
     };
-
     let collections = state.collections.lock().unwrap();
     match collections.iter().find(|c| c.id == ulid) {
         Some(col) => {

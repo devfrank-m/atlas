@@ -1,3 +1,3 @@
 pub mod base;
-pub mod flat_index;
+pub mod flat;
 pub mod hnsw;

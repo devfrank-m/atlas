@@ -1,8 +1,10 @@
+use crate::definitions::metadata::Metadata;
 use std::fmt::{Debug, Formatter};
 
 pub struct SearchResult {
     pub id: usize,
     pub score: f32,
+    pub metadata: Metadata,
     pub text: String,
     pub vector: Option<Vec<f32>>,
     pub external_id: Option<String>,
@@ -18,7 +20,6 @@ impl Debug for SearchResult {
         f.debug_struct("SearchResult")
             .field("id", &self.id)
             .field("score", &self.score)
-            .field("text", &self.text)
             .field("vector", &self.vector)
             .field("external_id", &self.external_id)
             .finish()
