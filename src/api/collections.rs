@@ -63,7 +63,11 @@ pub async fn create_collection(
         name: collection.name.clone(),
     };
 
-    state.collections.lock().unwrap().push(collection);
+    state
+        .collections
+        .lock()
+        .unwrap()
+        .insert(collection.id, collection);
 
     (StatusCode::CREATED, Json(resp)).into_response()
 }
@@ -80,7 +84,7 @@ pub async fn get_collection(
     };
 
     let collections = state.collections.lock().unwrap();
-    match collections.iter().find(|c| c.id == ulid) {
+    match collections.get(&ulid) {
         Some(col) => {
             let resp = CollectionDetailResponse {
                 id: col.id.to_string(),
@@ -112,7 +116,7 @@ pub async fn insert_vector(
     };
 
     let mut collections = state.collections.lock().unwrap();
-    match collections.iter_mut().find(|c| c.id == ulid) {
+    match collections.get_mut(&ulid) {
         Some(col) => {
             if req.vector.len() != col.dimension {
                 return (
@@ -151,7 +155,7 @@ pub async fn search_collection(
         }
     };
     let collections = state.collections.lock().unwrap();
-    match collections.iter().find(|c| c.id == ulid) {
+    match collections.get(&ulid) {
         Some(col) => {
             if req.vector.len() != col.dimension {
                 return (

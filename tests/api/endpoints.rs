@@ -225,7 +225,12 @@ async fn test_insert_with_external_id() {
 
 #[test]
 fn test_create_collection_returns_id() {
-    let col = Collection::new("my_collection".to_string(), 128, Metric::Cosine, IndexType::Flat);
+    let col = Collection::new(
+        "my_collection".to_string(),
+        128,
+        Metric::Cosine,
+        IndexType::Flat,
+    );
     assert!(!col.id.to_string().is_empty());
     assert_eq!(col.name, "my_collection");
     assert_eq!(col.dimension, 128);
@@ -247,7 +252,12 @@ fn test_insert_vector_returns_sequential_ids() {
 
 #[test]
 fn test_collection_detail_fields() {
-    let mut col = Collection::new("details_test".to_string(), 3, Metric::Euclidean, IndexType::Flat);
+    let mut col = Collection::new(
+        "details_test".to_string(),
+        3,
+        Metric::Euclidean,
+        IndexType::Flat,
+    );
     col.insert(vec![1.0, 2.0, 3.0], meta("a"), None);
     col.insert(vec![4.0, 5.0, 6.0], meta("b"), None);
 
@@ -259,7 +269,12 @@ fn test_collection_detail_fields() {
 
 #[test]
 fn test_search_response_structure() {
-    let mut col = Collection::new("search_test".to_string(), 2, Metric::Cosine, IndexType::Flat);
+    let mut col = Collection::new(
+        "search_test".to_string(),
+        2,
+        Metric::Cosine,
+        IndexType::Flat,
+    );
     col.insert(vec![1.0, 0.0], meta("alpha"), Some("ext-1".to_string()));
     col.insert(vec![0.0, 1.0], meta("beta"), Some("ext-2".to_string()));
 
@@ -271,7 +286,12 @@ fn test_search_response_structure() {
 
 #[test]
 fn test_search_response_without_external_ids() {
-    let mut col = Collection::new("search_test".to_string(), 2, Metric::Cosine, IndexType::Flat);
+    let mut col = Collection::new(
+        "search_test".to_string(),
+        2,
+        Metric::Cosine,
+        IndexType::Flat,
+    );
     col.insert(vec![1.0, 0.0], meta("alpha"), None);
     col.insert(vec![0.0, 1.0], meta("beta"), None);
 

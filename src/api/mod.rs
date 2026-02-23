@@ -7,12 +7,14 @@ use axum::{
     routing::{get, post},
 };
 use collections::{create_collection, get_collection, insert_vector, search_collection};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use ulid::Ulid;
 
 pub type AppState = Arc<AppStateInner>;
 
 pub struct AppStateInner {
-    pub collections: Mutex<Vec<Collection>>,
+    pub collections: Mutex<HashMap<Ulid, Collection>>,
 }
 
 impl Default for AppStateInner {
@@ -24,7 +26,7 @@ impl Default for AppStateInner {
 impl AppStateInner {
     pub fn new() -> Self {
         Self {
-            collections: Mutex::new(Vec::new()),
+            collections: Mutex::new(HashMap::new()),
         }
     }
 }
