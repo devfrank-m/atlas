@@ -169,7 +169,6 @@ pub async fn search_collection(
                     .map(|r| SearchResultResponse {
                         id: r.id,
                         score: r.score,
-                        text: r.text,
                         vector: r.vector,
                         external_id: r.external_id,
                         metadata: r.metadata,

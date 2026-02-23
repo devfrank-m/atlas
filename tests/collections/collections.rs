@@ -1,9 +1,15 @@
-use atlas::definitions::collections::{Collection, Metric};
+use atlas::definitions::collections::{Collection, IndexType, Metric};
+use serde_json::json;
+use std::collections::HashMap;
 use ulid::Ulid;
+
+fn meta(label: &str) -> HashMap<String, serde_json::Value> {
+    HashMap::from([("label".to_string(), json!(label))])
+}
 
 #[test]
 fn test_new_collection() {
-    let col = Collection::new("test".to_string(), 3, Metric::Cosine);
+    let col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
     let results = col.search(vec![1.0, 0.0, 0.0], 10);
     // empty collection returns no results
     assert_eq!(results.len(), 0);
@@ -11,8 +17,8 @@ fn test_new_collection() {
 
 #[test]
 fn test_collection_has_unique_id() {
-    let col1 = Collection::new("test".to_string(), 3, Metric::Cosine);
-    let col2 = Collection::new("test".to_string(), 3, Metric::Cosine);
+    let col1 = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
+    let col2 = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
     // each collection gets a unique ULID
     assert_ne!(col1.id, col2.id);
     // id should be a valid ULID string
@@ -21,24 +27,24 @@ fn test_collection_has_unique_id() {
 
 #[test]
 fn test_insert_and_search_cosine() {
-    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
-    col.insert(vec![1.0, 0.0, 0.0], "x-axis".to_string(), None);
-    col.insert(vec![0.0, 1.0, 0.0], "y-axis".to_string(), None);
-    col.insert(vec![1.0, 1.0, 0.0], "diagonal".to_string(), None);
+    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
+    col.insert(vec![1.0, 0.0, 0.0], meta("x-axis"), None);
+    col.insert(vec![0.0, 1.0, 0.0], meta("y-axis"), None);
+    col.insert(vec![1.0, 1.0, 0.0], meta("diagonal"), None);
 
     let results = col.search(vec![1.0, 0.0, 0.0], 3);
 
     // all 3 vectors returned
     assert_eq!(results.len(), 3);
     // most similar to x-axis query should be the x-axis vector
-    assert_eq!(results[0].text, "x-axis");
+    assert_eq!(results[0].metadata["label"], json!("x-axis"));
     // x-axis vs x-axis => cosine similarity of 1.0
     assert!(
         (results[0].score - 1.0).abs() < 1e-6,
         "identical vectors should have score 1.0"
     );
     // x-axis vs y-axis => orthogonal, score 0.0
-    assert_eq!(results[2].text, "y-axis");
+    assert_eq!(results[2].metadata["label"], json!("y-axis"));
     assert!(
         (results[2].score - 0.0).abs() < 1e-6,
         "orthogonal vectors should have score 0.0"
@@ -47,19 +53,19 @@ fn test_insert_and_search_cosine() {
 
 #[test]
 fn test_insert_and_search_dot_product() {
-    let mut col = Collection::new("test".to_string(), 2, Metric::DotProduct);
-    col.insert(vec![1.0, 2.0], "a".to_string(), None);
-    col.insert(vec![3.0, 4.0], "b".to_string(), None);
+    let mut col = Collection::new("test".to_string(), 2, Metric::DotProduct, IndexType::Flat);
+    col.insert(vec![1.0, 2.0], meta("a"), None);
+    col.insert(vec![3.0, 4.0], meta("b"), None);
 
     let results = col.search(vec![1.0, 1.0], 2);
 
     // dot(1,1)·(3,4) = 7, dot(1,1)·(1,2) = 3 — "b" ranked first
-    assert_eq!(results[0].text, "b");
+    assert_eq!(results[0].metadata["label"], json!("b"));
     assert!(
         (results[0].score - 7.0).abs() < 1e-6,
         "dot product of [1,1]·[3,4] should be 7.0"
     );
-    assert_eq!(results[1].text, "a");
+    assert_eq!(results[1].metadata["label"], json!("a"));
     assert!(
         (results[1].score - 3.0).abs() < 1e-6,
         "dot product of [1,1]·[1,2] should be 3.0"
@@ -68,14 +74,14 @@ fn test_insert_and_search_dot_product() {
 
 #[test]
 fn test_insert_and_search_euclidean() {
-    let mut col = Collection::new("test".to_string(), 2, Metric::Euclidean);
-    col.insert(vec![1.0, 0.0], "near".to_string(), None);
-    col.insert(vec![10.0, 10.0], "far".to_string(), None);
+    let mut col = Collection::new("test".to_string(), 2, Metric::Euclidean, IndexType::Flat);
+    col.insert(vec![1.0, 0.0], meta("near"), None);
+    col.insert(vec![10.0, 10.0], meta("far"), None);
 
     let results = col.search(vec![1.0, 0.0], 2);
 
     // nearest vector should rank first (higher score = closer)
-    assert_eq!(results[0].text, "near");
+    assert_eq!(results[0].metadata["label"], json!("near"));
     // distance 0 => score 1/(1+0) = 1.0
     assert!(
         (results[0].score - 1.0).abs() < 1e-6,
@@ -90,9 +96,9 @@ fn test_insert_and_search_euclidean() {
 
 #[test]
 fn test_search_k_limits_results() {
-    let mut col = Collection::new("test".to_string(), 2, Metric::Cosine);
+    let mut col = Collection::new("test".to_string(), 2, Metric::Cosine, IndexType::Flat);
     for i in 0..10 {
-        col.insert(vec![i as f32, 1.0], format!("vec_{}", i), None);
+        col.insert(vec![i as f32, 1.0], meta(&format!("vec_{}", i)), None);
     }
 
     let results = col.search(vec![1.0, 0.0], 3);
@@ -102,10 +108,10 @@ fn test_search_k_limits_results() {
 
 #[test]
 fn test_search_results_sorted_descending() {
-    let mut col = Collection::new("test".to_string(), 2, Metric::Cosine);
-    col.insert(vec![0.0, 1.0], "orthogonal".to_string(), None);
-    col.insert(vec![1.0, 0.0], "identical".to_string(), None);
-    col.insert(vec![1.0, 1.0], "diagonal".to_string(), None);
+    let mut col = Collection::new("test".to_string(), 2, Metric::Cosine, IndexType::Flat);
+    col.insert(vec![0.0, 1.0], meta("orthogonal"), None);
+    col.insert(vec![1.0, 0.0], meta("identical"), None);
+    col.insert(vec![1.0, 1.0], meta("diagonal"), None);
 
     let results = col.search(vec![1.0, 0.0], 3);
 
@@ -120,9 +126,9 @@ fn test_search_results_sorted_descending() {
 
 #[test]
 fn test_search_result_contains_correct_vector() {
-    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
+    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
     let v = vec![1.0, 2.0, 3.0];
-    col.insert(v.clone(), "target".to_string(), None);
+    col.insert(v.clone(), meta("target"), None);
 
     let results = col.search(vec![1.0, 2.0, 3.0], 1);
     // returned vector should match the inserted one
@@ -133,13 +139,83 @@ fn test_search_result_contains_correct_vector() {
 #[test]
 #[should_panic(expected = "Vector dimension does not match")]
 fn test_insert_wrong_dimension_panics() {
-    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine);
-    col.insert(vec![1.0, 2.0], "bad".to_string(), None);
+    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
+    col.insert(vec![1.0, 2.0], HashMap::new(), None);
 }
 
 #[test]
 #[should_panic(expected = "Query dimension does not match")]
 fn test_search_wrong_dimension_panics() {
-    let col = Collection::new("test".to_string(), 3, Metric::Cosine);
+    let col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
     col.search(vec![1.0, 2.0], 1);
+}
+
+// Unit-level tests for collection operations
+
+#[test]
+fn test_create_collection_returns_id() {
+    let col = Collection::new("my_collection".to_string(), 128, Metric::Cosine, IndexType::Flat);
+    assert!(!col.id.to_string().is_empty());
+    assert_eq!(col.name, "my_collection");
+    assert_eq!(col.dimension, 128);
+    assert_eq!(col.index.len(), 0);
+}
+
+#[test]
+fn test_insert_vector_returns_sequential_ids() {
+    let mut col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
+
+    let id0 = col.index.len();
+    col.insert(vec![1.0, 0.0, 0.0], meta("first"), None);
+    assert_eq!(id0, 0);
+
+    let id1 = col.index.len();
+    col.insert(vec![0.0, 1.0, 0.0], meta("second"), None);
+    assert_eq!(id1, 1);
+}
+
+#[test]
+fn test_collection_detail_fields() {
+    let mut col = Collection::new("details_test".to_string(), 3, Metric::Euclidean, IndexType::Flat);
+    col.insert(vec![1.0, 2.0, 3.0], meta("a"), None);
+    col.insert(vec![4.0, 5.0, 6.0], meta("b"), None);
+
+    assert_eq!(col.id.to_string().len(), 26);
+    assert_eq!(col.name, "details_test");
+    assert_eq!(col.dimension, 3);
+    assert_eq!(col.index.len(), 2);
+}
+
+#[test]
+fn test_search_response_structure() {
+    let mut col = Collection::new("search_test".to_string(), 2, Metric::Cosine, IndexType::Flat);
+    col.insert(vec![1.0, 0.0], meta("alpha"), Some("ext-1".to_string()));
+    col.insert(vec![0.0, 1.0], meta("beta"), Some("ext-2".to_string()));
+
+    let results = col.search(vec![1.0, 0.0], 2);
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].metadata["label"], json!("alpha"));
+    assert_eq!(results[0].external_id, Some("ext-1".to_string()));
+}
+
+#[test]
+fn test_search_response_without_external_ids() {
+    let mut col = Collection::new("search_test".to_string(), 2, Metric::Cosine, IndexType::Flat);
+    col.insert(vec![1.0, 0.0], meta("alpha"), None);
+    col.insert(vec![0.0, 1.0], meta("beta"), None);
+
+    let results = col.search(vec![1.0, 0.0], 2);
+    assert_eq!(results[0].external_id, None);
+}
+
+#[test]
+fn test_collection_lookup_by_id() {
+    let col1 = Collection::new("first".to_string(), 3, Metric::Cosine, IndexType::Flat);
+    let col2 = Collection::new("second".to_string(), 3, Metric::Cosine, IndexType::Flat);
+    let target_id = col2.id;
+
+    let collections = vec![col1, col2];
+    let found = collections.iter().find(|c| c.id == target_id);
+    assert!(found.is_some());
+    assert_eq!(found.unwrap().name, "second");
 }

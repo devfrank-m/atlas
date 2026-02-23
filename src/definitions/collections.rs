@@ -116,7 +116,6 @@ impl Collection {
             search_results.push(SearchResult {
                 id: index_result.id,
                 score: index_result.score,
-                text: "metadata".parse().unwrap(),
                 metadata,
                 vector,
                 external_id,

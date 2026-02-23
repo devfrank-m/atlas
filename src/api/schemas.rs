@@ -1,7 +1,7 @@
+use crate::definitions::metadata::Metadata;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use crate::definitions::metadata::Metadata;
 // --- Collection ---
 
 #[derive(Serialize, Deserialize)]
@@ -53,7 +53,6 @@ pub struct SearchRequest {
 pub struct SearchResultResponse {
     pub id: usize,
     pub score: f32,
-    pub text: String,
     pub metadata: Metadata,
     pub vector: Option<Vec<f32>>,
     pub external_id: Option<String>,

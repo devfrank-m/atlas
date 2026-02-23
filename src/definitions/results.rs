@@ -5,7 +5,6 @@ pub struct SearchResult {
     pub id: usize,
     pub score: f32,
     pub metadata: Metadata,
-    pub text: String,
     pub vector: Option<Vec<f32>>,
     pub external_id: Option<String>,
 }
