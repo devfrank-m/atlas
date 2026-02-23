@@ -2,6 +2,7 @@ use crate::definitions::metadata::Metadata;
 use crate::definitions::results::SearchResult;
 use crate::index::base::Index;
 use crate::index::flat::FlatIndex;
+use crate::index::hnsw::HnswIndex;
 use ulid::Ulid;
 
 #[derive(Clone, Copy)]
@@ -9,6 +10,12 @@ pub enum Metric {
     Cosine,
     Euclidean,
     DotProduct,
+}
+
+#[derive(Clone, Copy)]
+pub enum IndexType {
+    Flat,
+    Hnsw,
 }
 
 pub struct Collection {
@@ -22,16 +29,26 @@ pub struct Collection {
 }
 
 impl Collection {
-    pub fn new(name: String, dimension: usize, metric: Metric) -> Self {
-        Self {
-            id: Ulid::new(),
-            name,
-            dimension,
-            index: Box::new(FlatIndex {
+    pub fn new(name: String, dimension: usize, metric: Metric, index_type: IndexType) -> Self {
+        let index: Box<dyn Index> = match index_type {
+            IndexType::Flat => Box::new(FlatIndex {
                 vectors: Vec::new(),
                 dimension,
                 metric: metric.clone(),
             }),
+            IndexType::Hnsw => Box::new(
+                // intentionally hard-coded parameters for now,
+                // we'll make them configurable on API once we
+                // narrow down on the most ergonomic schema for index configuration
+                HnswIndex::new(dimension, metric, 16, 200),
+            ),
+        };
+
+        Self {
+            id: Ulid::new(),
+            name,
+            dimension,
+            index,
             metric,
             metadata: Vec::new(),
             external_ids: None,

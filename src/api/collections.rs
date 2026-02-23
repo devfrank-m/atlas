@@ -5,7 +5,8 @@ use crate::api::schemas::{
 };
 use crate::common::api::bad_request;
 use crate::common::utils::parse_ulid;
-use crate::definitions::collections::{Collection, Metric};
+use crate::definitions::collections::{Collection, IndexType, Metric};
+use crate::definitions::errors::ValidationError;
 use axum::{
     Json,
     extract::{Path, State},
@@ -30,22 +31,33 @@ fn metric_to_string(m: &Metric) -> &'static str {
     }
 }
 
+fn parse_index(s: &str) -> Result<IndexType, ValidationError> {
+    match s.to_lowercase().as_str() {
+        "flat" => Ok(IndexType::Flat),
+        "hnsw" => Ok(IndexType::Hnsw),
+        _ => Err(ValidationError::new(
+            "Invalid index type. Use: flat, hnsw".to_string(),
+        )),
+    }
+}
+
 pub async fn create_collection(
     State(state): State<AppState>,
     Json(req): Json<CollectionCreateRequest>,
 ) -> impl IntoResponse {
     let metric = match parse_metric(&req.metric) {
         Some(m) => m,
-        None => return (
-            StatusCode::BAD_REQUEST,
-            Json(
-                serde_json::json!({"error": "Invalid metric. Use: cosine, euclidean, dot_product"}),
-            ),
-        )
-            .into_response(),
+        None => {
+            return bad_request("Invalid metric. Use: cosine, euclidean, dot_product".to_string());
+        }
     };
 
-    let collection = Collection::new(req.name.clone(), req.dimension, metric);
+    let index_type = match parse_index(&req.index.unwrap_or("flat".to_string())) {
+        Ok(i) => i,
+        Err(e) => return bad_request(e.to_string()),
+    };
+
+    let collection = Collection::new(req.name.clone(), req.dimension, metric, index_type);
     let resp = CollectionCreateResponse {
         id: collection.id.to_string(),
         name: collection.name.clone(),
@@ -112,7 +124,6 @@ pub async fn insert_vector(
                     .into_response();
             }
             let vector_id = col.index.len();
-            let metadata = req.metadata.clone();
             col.insert(req.vector, req.metadata, req.external_id);
             (
                 StatusCode::CREATED,
@@ -161,6 +172,7 @@ pub async fn search_collection(
                         text: r.text,
                         vector: r.vector,
                         external_id: r.external_id,
+                        metadata: r.metadata,
                     })
                     .collect(),
             };
