@@ -1,3 +1,4 @@
+use crate::definitions::filter::Filter;
 use crate::definitions::metadata::Metadata;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -47,6 +48,7 @@ pub struct VectorInsertResponse {
 pub struct SearchRequest {
     pub vector: Vec<f32>,
     pub k: usize,
+    pub filter: Option<Filter>,
 }
 
 #[derive(Serialize, Deserialize)]

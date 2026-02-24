@@ -3,7 +3,7 @@ use crate::api::schemas::{
     CollectionCreateRequest, CollectionCreateResponse, CollectionDetailResponse, SearchRequest,
     SearchResponse, SearchResultResponse, VectorInsertRequest, VectorInsertResponse,
 };
-use crate::common::api::bad_request;
+use crate::common::api::{bad_request, not_found};
 use crate::common::utils::parse_ulid;
 use crate::definitions::collections::{Collection, IndexType, Metric};
 use crate::definitions::errors::ValidationError;
@@ -95,11 +95,7 @@ pub async fn get_collection(
             };
             (StatusCode::OK, Json(resp)).into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Collection not found"})),
-        )
-            .into_response(),
+        None => not_found("Collection not found"),
     }
 }
 
@@ -119,13 +115,11 @@ pub async fn insert_vector(
     match collections.get_mut(&ulid) {
         Some(col) => {
             if req.vector.len() != col.dimension {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({
-                        "error": format!("Vector dimension {} does not match collection dimension {}", req.vector.len(), col.dimension)
-                    })),
-                )
-                    .into_response();
+                return bad_request(format!(
+                    "Vector dimension {} does not match collection dimension {}",
+                    req.vector.len(),
+                    col.dimension
+                ));
             }
             let vector_id = col.index.len();
             col.insert(req.vector, req.metadata, req.external_id);
@@ -135,11 +129,7 @@ pub async fn insert_vector(
             )
                 .into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Collection not found"})),
-        )
-            .into_response(),
+        None => not_found("Collection not found"),
     }
 }
 
@@ -158,15 +148,13 @@ pub async fn search_collection(
     match collections.get(&ulid) {
         Some(col) => {
             if req.vector.len() != col.dimension {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({
-                        "error": format!("Query dimension {} does not match collection dimension {}", req.vector.len(), col.dimension)
-                    })),
-                )
-                    .into_response();
+                return bad_request(format!(
+                    "Query dimension {} does not match collection dimension {}",
+                    req.vector.len(),
+                    col.dimension
+                ));
             }
-            let results = col.search(req.vector, req.k);
+            let results = col.search(req.vector, req.k, req.filter);
             let resp = SearchResponse {
                 results: results
                     .into_iter()
@@ -181,10 +169,6 @@ pub async fn search_collection(
             };
             (StatusCode::OK, Json(resp)).into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Collection not found"})),
-        )
-            .into_response(),
+        None => not_found("Collection not found"),
     }
 }

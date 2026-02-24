@@ -1,8 +1,10 @@
+use crate::definitions::filter::Filter;
 use crate::definitions::metadata::Metadata;
 use crate::definitions::results::SearchResult;
 use crate::index::base::Index;
 use crate::index::flat::FlatIndex;
 use crate::index::hnsw::HnswIndex;
+use tokio::signal::unix::Signal;
 use ulid::Ulid;
 
 #[derive(Clone, Copy)]
@@ -82,7 +84,7 @@ impl Collection {
         }
     }
 
-    pub fn search(&self, query: Vec<f32>, k: usize) -> Vec<SearchResult> {
+    pub fn search(&self, query: Vec<f32>, k: usize, filter: Option<Filter>) -> Vec<SearchResult> {
         assert_eq!(
             query.len(),
             self.dimension,
@@ -97,15 +99,34 @@ impl Collection {
             return Vec::new();
         }
 
-        let index_results = self.index.search(query, k);
+        let search_k = if filter.clone().is_some() {
+            let factor = 5;
+            let cap = 2000;
+            (k * factor).min(cap).min(self.index.len())
+        } else {
+            k
+        };
+
+        let index_results = self.index.search(query, search_k);
         let mut search_results = Vec::with_capacity(index_results.len());
 
         for index_result in index_results {
+            if search_results.len() == k {
+                break;
+            }
+
             let metadata = self
                 .metadata
                 .get(index_result.id)
                 .cloned()
                 .unwrap_or_default();
+
+            if let Some(ref f) = filter {
+                if !f.matches(&metadata) {
+                    continue;
+                }
+            }
+
             let external_id = self
                 .external_ids
                 .as_ref()
