@@ -100,6 +100,7 @@ impl Collection {
         }
 
         let search_k = if filter.clone().is_some() {
+            // also hard coding for now, should move this to config
             let factor = 5;
             let cap = 2000;
             (k * factor).min(cap).min(self.index.len())
@@ -111,9 +112,9 @@ impl Collection {
         let mut search_results = Vec::with_capacity(index_results.len());
 
         for index_result in index_results {
-            if search_results.len() == k {
-                break;
-            }
+            // if search_results.len() == k {
+            //     break;
+            // }
 
             let metadata = self
                 .metadata
