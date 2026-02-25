@@ -4,7 +4,6 @@ use crate::definitions::results::SearchResult;
 use crate::index::base::Index;
 use crate::index::flat::FlatIndex;
 use crate::index::hnsw::HnswIndex;
-use tokio::signal::unix::Signal;
 use ulid::Ulid;
 
 #[derive(Clone, Copy)]

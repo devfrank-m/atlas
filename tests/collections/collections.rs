@@ -7,7 +7,7 @@ use ulid::Ulid;
 #[test]
 fn test_new_collection() {
     let col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
-    let results = col.search(vec![1.0, 0.0, 0.0], 10);
+    let results = col.search(vec![1.0, 0.0, 0.0], 10, None);
     // empty collection returns no results
     assert_eq!(results.len(), 0);
 }
@@ -29,7 +29,7 @@ fn test_insert_and_search_cosine() {
     col.insert(vec![0.0, 1.0, 0.0], meta("y-axis"), None);
     col.insert(vec![1.0, 1.0, 0.0], meta("diagonal"), None);
 
-    let results = col.search(vec![1.0, 0.0, 0.0], 3);
+    let results = col.search(vec![1.0, 0.0, 0.0], 3, None);
 
     // all 3 vectors returned
     assert_eq!(results.len(), 3);
@@ -54,7 +54,7 @@ fn test_insert_and_search_dot_product() {
     col.insert(vec![1.0, 2.0], meta("a"), None);
     col.insert(vec![3.0, 4.0], meta("b"), None);
 
-    let results = col.search(vec![1.0, 1.0], 2);
+    let results = col.search(vec![1.0, 1.0], 2, None);
 
     // dot(1,1)·(3,4) = 7, dot(1,1)·(1,2) = 3 — "b" ranked first
     assert_eq!(results[0].metadata["label"], json!("b"));
@@ -75,7 +75,7 @@ fn test_insert_and_search_euclidean() {
     col.insert(vec![1.0, 0.0], meta("near"), None);
     col.insert(vec![10.0, 10.0], meta("far"), None);
 
-    let results = col.search(vec![1.0, 0.0], 2);
+    let results = col.search(vec![1.0, 0.0], 2, None);
 
     // nearest vector should rank first (higher score = closer)
     assert_eq!(results[0].metadata["label"], json!("near"));
@@ -98,7 +98,7 @@ fn test_search_k_limits_results() {
         col.insert(vec![i as f32, 1.0], meta(&format!("vec_{}", i)), None);
     }
 
-    let results = col.search(vec![1.0, 0.0], 3);
+    let results = col.search(vec![1.0, 0.0], 3, None);
     // only top-3 returned even though 10 vectors exist
     assert_eq!(results.len(), 3);
 }
@@ -110,7 +110,7 @@ fn test_search_results_sorted_descending() {
     col.insert(vec![1.0, 0.0], meta("identical"), None);
     col.insert(vec![1.0, 1.0], meta("diagonal"), None);
 
-    let results = col.search(vec![1.0, 0.0], 3);
+    let results = col.search(vec![1.0, 0.0], 3, None);
 
     // scores should be in descending order
     for i in 0..results.len() - 1 {
@@ -127,7 +127,7 @@ fn test_search_result_contains_correct_vector() {
     let v = vec![1.0, 2.0, 3.0];
     col.insert(v.clone(), meta("target"), None);
 
-    let results = col.search(vec![1.0, 2.0, 3.0], 1);
+    let results = col.search(vec![1.0, 2.0, 3.0], 1, None);
     // returned vector should match the inserted one
     assert_eq!(results[0].vector, Some(v));
     assert_eq!(results[0].id, 0, "first inserted vector should have id 0");
@@ -144,7 +144,7 @@ fn test_insert_wrong_dimension_panics() {
 #[should_panic(expected = "Query dimension does not match")]
 fn test_search_wrong_dimension_panics() {
     let col = Collection::new("test".to_string(), 3, Metric::Cosine, IndexType::Flat);
-    col.search(vec![1.0, 2.0], 1);
+    col.search(vec![1.0, 2.0], 1, None);
 }
 
 // Unit-level tests for collection operations
@@ -204,7 +204,7 @@ fn test_search_response_structure() {
     col.insert(vec![1.0, 0.0], meta("alpha"), Some("ext-1".to_string()));
     col.insert(vec![0.0, 1.0], meta("beta"), Some("ext-2".to_string()));
 
-    let results = col.search(vec![1.0, 0.0], 2);
+    let results = col.search(vec![1.0, 0.0], 2, None);
     assert_eq!(results.len(), 2);
     assert_eq!(results[0].metadata["label"], json!("alpha"));
     assert_eq!(results[0].external_id, Some("ext-1".to_string()));
@@ -221,7 +221,7 @@ fn test_search_response_without_external_ids() {
     col.insert(vec![1.0, 0.0], meta("alpha"), None);
     col.insert(vec![0.0, 1.0], meta("beta"), None);
 
-    let results = col.search(vec![1.0, 0.0], 2);
+    let results = col.search(vec![1.0, 0.0], 2, None);
     assert_eq!(results[0].external_id, None);
 }
 

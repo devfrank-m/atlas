@@ -1,5 +1,5 @@
 mod api;
 mod collections;
 pub mod helpers;
-mod hnsw;
+mod index;
 mod similarity;

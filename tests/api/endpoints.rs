@@ -274,7 +274,7 @@ fn test_search_response_structure() {
     col.insert(vec![1.0, 0.0], meta("alpha"), Some("ext-1".to_string()));
     col.insert(vec![0.0, 1.0], meta("beta"), Some("ext-2".to_string()));
 
-    let results = col.search(vec![1.0, 0.0], 2);
+    let results = col.search(vec![1.0, 0.0], 2, None);
     assert_eq!(results.len(), 2);
     assert_eq!(results[0].metadata["label"], json!("alpha"));
     assert_eq!(results[0].external_id, Some("ext-1".to_string()));
@@ -291,7 +291,7 @@ fn test_search_response_without_external_ids() {
     col.insert(vec![1.0, 0.0], meta("alpha"), None);
     col.insert(vec![0.0, 1.0], meta("beta"), None);
 
-    let results = col.search(vec![1.0, 0.0], 2);
+    let results = col.search(vec![1.0, 0.0], 2, None);
     assert_eq!(results[0].external_id, None);
 }
 
