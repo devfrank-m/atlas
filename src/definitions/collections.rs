@@ -36,7 +36,7 @@ impl Collection {
             IndexType::Flat => Box::new(FlatIndex {
                 vectors: Vec::new(),
                 dimension,
-                metric: metric.clone(),
+                metric,
             }),
             IndexType::Hnsw => Box::new(
                 // intentionally hard-coded parameters for now,
@@ -112,9 +112,11 @@ impl Collection {
         let mut search_results = Vec::with_capacity(index_results.len());
 
         for index_result in index_results {
-            // if search_results.len() == k {
-            //     break;
-            // }
+            if search_results.len() == k {
+                // if we've already collected k results,
+                // we can stop processing further results
+                break;
+            }
 
             let metadata = self
                 .metadata
@@ -122,8 +124,10 @@ impl Collection {
                 .cloned()
                 .unwrap_or_default();
 
-            if let Some(ref f) = filter {
-                if !f.matches(&metadata) {
+            if let Some(filter_value) = &filter {
+                if !filter_value.matches(&metadata) {
+                    // if the result doesn't match the filter,
+                    // we skip it and continue to the next one
                     continue;
                 }
             }
@@ -134,6 +138,7 @@ impl Collection {
                 .and_then(|ids| ids.get(index_result.id))
                 .cloned()
                 .filter(|s| !s.is_empty());
+
             let vector = self.index.get(index_result.id).map(|v| v.to_vec());
             search_results.push(SearchResult {
                 id: index_result.id,
