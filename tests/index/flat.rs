@@ -88,9 +88,9 @@ fn test_results_sorted_descending() {
 
     let results = index.search(vec![1.0, 0.0], 3);
 
-    for i in 0..results.len() - 1 {
+    for w in results.windows(2) {
         assert!(
-            results[i].score >= results[i + 1].score,
+            w[0].score >= w[1].score,
             "results should be sorted by score descending"
         );
     }
