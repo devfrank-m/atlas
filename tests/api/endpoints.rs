@@ -214,4 +214,3 @@ async fn test_insert_with_external_id() {
     let body: serde_json::Value = resp.json();
     assert_eq!(body["results"][0]["external_id"], "ext-1");
 }
-
