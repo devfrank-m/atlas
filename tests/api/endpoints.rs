@@ -1,14 +1,10 @@
+use crate::helpers::meta;
 use atlas::api::{AppState, AppStateInner, build_router};
 use atlas::definitions::collections::{Collection, IndexType, Metric};
 use axum::http::StatusCode;
 use axum_test::TestServer;
 use serde_json::json;
-use std::collections::HashMap;
 use std::sync::Arc;
-
-fn meta(label: &str) -> HashMap<String, serde_json::Value> {
-    HashMap::from([("label".to_string(), json!(label))])
-}
 
 fn test_server() -> TestServer {
     let state: AppState = Arc::new(AppStateInner::new());

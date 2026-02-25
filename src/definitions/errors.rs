@@ -8,8 +8,10 @@ pub struct ValidationError {
 impl Error for ValidationError {}
 
 impl ValidationError {
-    pub fn new(details: String) -> Self {
-        Self { details }
+    pub fn new<T: Into<String>>(details: T) -> Self {
+        Self {
+            details: details.into(),
+        }
     }
 }
 

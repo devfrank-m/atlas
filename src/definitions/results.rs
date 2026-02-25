@@ -19,6 +19,7 @@ impl Debug for SearchResult {
         f.debug_struct("SearchResult")
             .field("id", &self.id)
             .field("score", &self.score)
+            .field("metadata", &self.metadata)
             .field("vector", &self.vector)
             .field("external_id", &self.external_id)
             .finish()

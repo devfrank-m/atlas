@@ -1,8 +1,6 @@
 use crate::definitions::filter::Filter;
 use crate::definitions::metadata::Metadata;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
 // --- Collection ---
 
 #[derive(Serialize, Deserialize)]
@@ -33,7 +31,7 @@ pub struct CollectionDetailResponse {
 #[derive(Serialize, Deserialize)]
 pub struct VectorInsertRequest {
     pub vector: Vec<f32>,
-    pub metadata: HashMap<String, Value>,
+    pub metadata: Metadata,
     pub external_id: Option<String>,
 }
 

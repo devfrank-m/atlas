@@ -1,11 +1,8 @@
+use crate::helpers::meta;
 use atlas::definitions::collections::{Collection, IndexType, Metric};
 use serde_json::json;
 use std::collections::HashMap;
 use ulid::Ulid;
-
-fn meta(label: &str) -> HashMap<String, serde_json::Value> {
-    HashMap::from([("label".to_string(), json!(label))])
-}
 
 #[test]
 fn test_new_collection() {
