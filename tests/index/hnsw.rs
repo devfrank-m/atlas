@@ -1,6 +1,6 @@
 use atlas::definitions::collections::Metric;
 use atlas::index::base::Index;
-use atlas::index::flat_index::FlatIndex;
+use atlas::index::flat::FlatIndex;
 use atlas::index::hnsw::HnswIndex;
 use std::collections::HashSet;
 

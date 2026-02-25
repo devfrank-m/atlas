@@ -1,5 +1,6 @@
+use crate::definitions::filter::Filter;
+use crate::definitions::metadata::Metadata;
 use serde::{Deserialize, Serialize};
-
 // --- Collection ---
 
 #[derive(Serialize, Deserialize)]
@@ -7,6 +8,7 @@ pub struct CollectionCreateRequest {
     pub name: String,
     pub dimension: usize,
     pub metric: String,
+    pub index: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,7 +31,7 @@ pub struct CollectionDetailResponse {
 #[derive(Serialize, Deserialize)]
 pub struct VectorInsertRequest {
     pub vector: Vec<f32>,
-    pub metadata: String,
+    pub metadata: Metadata,
     pub external_id: Option<String>,
 }
 
@@ -44,13 +46,14 @@ pub struct VectorInsertResponse {
 pub struct SearchRequest {
     pub vector: Vec<f32>,
     pub k: usize,
+    pub filter: Option<Filter>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SearchResultResponse {
     pub id: usize,
     pub score: f32,
-    pub text: String,
+    pub metadata: Metadata,
     pub vector: Option<Vec<f32>>,
     pub external_id: Option<String>,
 }

@@ -3,14 +3,16 @@ use crate::api::schemas::{
     CollectionCreateRequest, CollectionCreateResponse, CollectionDetailResponse, SearchRequest,
     SearchResponse, SearchResultResponse, VectorInsertRequest, VectorInsertResponse,
 };
-use crate::definitions::collections::{Collection, Metric};
+use crate::common::api::{bad_request, not_found};
+use crate::common::utils::parse_ulid;
+use crate::definitions::collections::{Collection, IndexType, Metric};
+use crate::definitions::errors::ValidationError;
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
 };
-use ulid::Ulid;
 
 fn parse_metric(s: &str) -> Option<Metric> {
     match s.to_lowercase().as_str() {
@@ -29,28 +31,43 @@ fn metric_to_string(m: &Metric) -> &'static str {
     }
 }
 
+fn parse_index(s: &str) -> Result<IndexType, ValidationError> {
+    match s.to_lowercase().as_str() {
+        "flat" => Ok(IndexType::Flat),
+        "hnsw" => Ok(IndexType::Hnsw),
+        _ => Err(ValidationError::new(
+            "Invalid index type. Use: flat, hnsw".to_string(),
+        )),
+    }
+}
+
 pub async fn create_collection(
     State(state): State<AppState>,
     Json(req): Json<CollectionCreateRequest>,
 ) -> impl IntoResponse {
     let metric = match parse_metric(&req.metric) {
         Some(m) => m,
-        None => return (
-            StatusCode::BAD_REQUEST,
-            Json(
-                serde_json::json!({"error": "Invalid metric. Use: cosine, euclidean, dot_product"}),
-            ),
-        )
-            .into_response(),
+        None => {
+            return bad_request("Invalid metric. Use: cosine, euclidean, dot_product".to_string());
+        }
     };
 
-    let collection = Collection::new(req.name.clone(), req.dimension, metric);
+    let index_type = match parse_index(&req.index.unwrap_or("flat".to_string())) {
+        Ok(i) => i,
+        Err(e) => return bad_request(e.to_string()),
+    };
+
+    let collection = Collection::new(req.name.clone(), req.dimension, metric, index_type);
     let resp = CollectionCreateResponse {
         id: collection.id.to_string(),
         name: collection.name.clone(),
     };
 
-    state.collections.lock().unwrap().push(collection);
+    state
+        .collections
+        .lock()
+        .unwrap()
+        .insert(collection.id, collection);
 
     (StatusCode::CREATED, Json(resp)).into_response()
 }
@@ -59,19 +76,15 @@ pub async fn get_collection(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let ulid = match id.parse::<Ulid>() {
+    let ulid = match parse_ulid(&id) {
         Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid collection ID"})),
-            )
-                .into_response();
+        Err(e) => {
+            return bad_request(e.to_string());
         }
     };
 
     let collections = state.collections.lock().unwrap();
-    match collections.iter().find(|c| c.id == ulid) {
+    match collections.get(&ulid) {
         Some(col) => {
             let resp = CollectionDetailResponse {
                 id: col.id.to_string(),
@@ -82,11 +95,7 @@ pub async fn get_collection(
             };
             (StatusCode::OK, Json(resp)).into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Collection not found"})),
-        )
-            .into_response(),
+        None => not_found("Collection not found"),
     }
 }
 
@@ -95,28 +104,22 @@ pub async fn insert_vector(
     Path(id): Path<String>,
     Json(req): Json<VectorInsertRequest>,
 ) -> impl IntoResponse {
-    let ulid = match id.parse::<Ulid>() {
+    let ulid = match parse_ulid(&id) {
         Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid collection ID"})),
-            )
-                .into_response();
+        Err(e) => {
+            return bad_request(e.to_string());
         }
     };
 
     let mut collections = state.collections.lock().unwrap();
-    match collections.iter_mut().find(|c| c.id == ulid) {
+    match collections.get_mut(&ulid) {
         Some(col) => {
             if req.vector.len() != col.dimension {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({
-                        "error": format!("Vector dimension {} does not match collection dimension {}", req.vector.len(), col.dimension)
-                    })),
-                )
-                    .into_response();
+                return bad_request(format!(
+                    "Vector dimension {} does not match collection dimension {}",
+                    req.vector.len(),
+                    col.dimension
+                ));
             }
             let vector_id = col.index.len();
             col.insert(req.vector, req.metadata, req.external_id);
@@ -126,11 +129,7 @@ pub async fn insert_vector(
             )
                 .into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Collection not found"})),
-        )
-            .into_response(),
+        None => not_found("Collection not found"),
     }
 }
 
@@ -139,48 +138,37 @@ pub async fn search_collection(
     Path(id): Path<String>,
     Json(req): Json<SearchRequest>,
 ) -> impl IntoResponse {
-    let ulid = match id.parse::<Ulid>() {
+    let ulid = match parse_ulid(&id) {
         Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid collection ID"})),
-            )
-                .into_response();
+        Err(e) => {
+            return bad_request(e.to_string());
         }
     };
-
     let collections = state.collections.lock().unwrap();
-    match collections.iter().find(|c| c.id == ulid) {
+    match collections.get(&ulid) {
         Some(col) => {
             if req.vector.len() != col.dimension {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({
-                        "error": format!("Query dimension {} does not match collection dimension {}", req.vector.len(), col.dimension)
-                    })),
-                )
-                    .into_response();
+                return bad_request(format!(
+                    "Query dimension {} does not match collection dimension {}",
+                    req.vector.len(),
+                    col.dimension
+                ));
             }
-            let results = col.search(req.vector, req.k);
+            let results = col.search(req.vector, req.k, req.filter);
             let resp = SearchResponse {
                 results: results
                     .into_iter()
                     .map(|r| SearchResultResponse {
                         id: r.id,
                         score: r.score,
-                        text: r.text,
                         vector: r.vector,
                         external_id: r.external_id,
+                        metadata: r.metadata,
                     })
                     .collect(),
             };
             (StatusCode::OK, Json(resp)).into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Collection not found"})),
-        )
-            .into_response(),
+        None => not_found("Collection not found"),
     }
 }
