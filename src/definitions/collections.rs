@@ -125,12 +125,12 @@ impl Collection {
                 .cloned()
                 .unwrap_or_default();
 
-            if let Some(filter_value) = &filter {
-                if !filter_value.matches(&metadata) {
-                    // if the result doesn't match the filter,
-                    // we skip it and continue to the next one
-                    continue;
-                }
+            if let Some(filter_value) = &filter
+                && !filter_value.matches(&metadata)
+            {
+                // if the result doesn't match the filter,
+                // we skip it and continue to the next one
+                continue;
             }
 
             let external_id = self

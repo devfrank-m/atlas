@@ -11,14 +11,14 @@ pub fn cosine_similarity(vec1: &[f32], vec2: &[f32]) -> f32 {
     }
 
     let mut vec1_magnitude = 0.0;
-    for i in 0..vec1.len() {
-        vec1_magnitude += vec1[i].powi(2);
+    for x in vec1 {
+        vec1_magnitude += x.powi(2);
     }
     vec1_magnitude = vec1_magnitude.sqrt();
 
     let mut vec2_magnitude = 0.0;
-    for i in 0..vec2.len() {
-        vec2_magnitude += vec2[i].powi(2);
+    for x in vec2 {
+        vec2_magnitude += x.powi(2);
     }
     vec2_magnitude = vec2_magnitude.sqrt();
 

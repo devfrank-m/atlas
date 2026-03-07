@@ -108,7 +108,7 @@ impl CollectionStore {
         })
     }
 
-    fn from_disk_data(&self, data: DiskCollectionData) -> Result<CollectionData, String> {
+    fn decode_disk_data(&self, data: DiskCollectionData) -> Result<CollectionData, String> {
         let index = match data.index {
             DiskIndexSnapshot::Flat { vectors } => IndexSnapshot::Flat { vectors },
             DiskIndexSnapshot::Hnsw {
@@ -200,7 +200,7 @@ impl CollectionStore {
 
         let disk_data: DiskCollectionData =
             serde_json::from_str(snapshot.data.get()).map_err(|e| e.to_string())?;
-        let data = self.from_disk_data(disk_data)?;
+        let data = self.decode_disk_data(disk_data)?;
         let mut collection = Collection::from_snapshot(data)?;
 
         if self.wal_path(id).exists() {

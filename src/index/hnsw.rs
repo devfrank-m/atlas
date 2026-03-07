@@ -89,6 +89,7 @@ fn distance_from_coords(metric: Metric, a: &[f32], b: &[f32]) -> f32 {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn search_layer_static(
     vectors: &[f32],
     nodes: &[Node],
@@ -123,10 +124,11 @@ fn search_layer_static(
     }
 
     while let Some(Reverse(closest)) = candidates.pop() {
-        if let Some(furthest) = results.peek() {
-            if closest.distance > furthest.distance && results.len() >= ef {
-                break;
-            }
+        if let Some(furthest) = results.peek()
+            && closest.distance > furthest.distance
+            && results.len() >= ef
+        {
+            break;
         }
 
         if closest.id >= nodes.len() {
@@ -257,6 +259,7 @@ impl HnswIndex {
         (-r.ln() * self.level_mult).floor() as usize
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_snapshot(
         dimension: usize,
         metric: Metric,

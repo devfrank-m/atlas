@@ -26,7 +26,7 @@ pub fn write(
     if dimension == 0 && !vectors.is_empty() {
         return Err("dimension is 0 but vectors is non-empty".into());
     }
-    if dimension > 0 && vectors.len() % dimension as usize != 0 {
+    if dimension > 0 && !vectors.len().is_multiple_of(dimension as usize) {
         return Err(format!(
             "vectors length {} is not a multiple of dimension {dimension}",
             vectors.len()
