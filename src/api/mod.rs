@@ -33,7 +33,7 @@ impl AppStateInner {
         let store = CollectionStore::new(data_dir)?;
         let collections = store
             .load_all()
-            .unwrap_or_default()
+            .map_err(std::io::Error::other)?
             .into_iter()
             .map(|c| (c.id, c))
             .collect();

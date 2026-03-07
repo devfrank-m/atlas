@@ -474,11 +474,9 @@ impl Index for HnswIndex {
 
     fn get(&self, id: usize) -> Option<&[f32]> {
         let vectors = self.vectors.as_slice();
-        if id * self.dimension < vectors.len() {
-            Some(get_vector(vectors, self.dimension, id))
-        } else {
-            None
-        }
+        let start = id.checked_mul(self.dimension)?;
+        let end = start.checked_add(self.dimension)?;
+        vectors.get(start..end)
     }
 
     fn len(&self) -> usize {
