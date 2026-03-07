@@ -29,5 +29,3 @@ impl VectorStorage {
         }
     }
 }
-
-unsafe impl Send for VectorStorage {}

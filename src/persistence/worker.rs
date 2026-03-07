@@ -24,6 +24,7 @@ pub async fn persistence_worker(
                 Some(PersistEvent::Dirty(id)) => { dirty.insert(id); }
                 Some(PersistEvent::Delete(id)) => {
                     dirty.remove(&id);
+                    state.collections.lock().unwrap().remove(&id);
                     if let Err(e) = state.store.delete(&id.to_string()) {
                         tracing::error!("Failed to delete {id}: {e}");
                     }
@@ -40,6 +41,7 @@ pub async fn persistence_worker(
                         PersistEvent::Dirty(id) => { dirty.insert(id); }
                         PersistEvent::Delete(id) => {
                             dirty.remove(&id);
+                            state.collections.lock().unwrap().remove(&id);
                             if let Err(e) = state.store.delete(&id.to_string()) {
                                 tracing::error!("Failed to delete {id}: {e}");
                             }
