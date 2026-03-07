@@ -8,5 +8,7 @@ COPY src ./src
 RUN touch src/main.rs && cargo build --release
 
 FROM debian:trixie-slim
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin atlas
 COPY --from=builder /app/target/release/atlas /usr/local/bin/atlas
+USER atlas
 CMD ["atlas"]
