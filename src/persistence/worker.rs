@@ -64,10 +64,10 @@ fn flush(state: &AppState, dirty: &mut HashSet<Ulid>) {
     let ids: Vec<Ulid> = dirty.drain().collect();
     let guard = state.collections.lock().unwrap();
     for id in &ids {
-        if let Some(col) = guard.get(id) {
-            if let Err(e) = state.store.save(col) {
-                tracing::error!("Failed to persist {id}: {e}");
-            }
+        if let Some(col) = guard.get(id)
+            && let Err(e) = state.store.save(col)
+        {
+            tracing::error!("Failed to persist {id}: {e}");
         }
     }
 }

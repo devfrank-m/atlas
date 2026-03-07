@@ -1,0 +1,21 @@
+name: Bump version
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - develop
+
+
+jobs:
+  build:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bump version and push tag
+        uses: K-Phoen/semver-release-action@v1.3.2
+        with:
+          release_branch: develop
+          release_strategy: tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
