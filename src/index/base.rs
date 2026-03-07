@@ -1,4 +1,5 @@
 use crate::definitions::results::IndexSearchResult;
+use crate::persistence::IndexSnapshot;
 
 pub trait Index: Send {
     fn insert(&mut self, vector: Vec<f32>);
@@ -8,4 +9,5 @@ pub trait Index: Send {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
+    fn snapshot(&self) -> IndexSnapshot;
 }

@@ -4,16 +4,18 @@ use crate::definitions::results::SearchResult;
 use crate::index::base::Index;
 use crate::index::flat::FlatIndex;
 use crate::index::hnsw::HnswIndex;
+use crate::persistence::{CollectionData, IndexSnapshot};
+use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum Metric {
     Cosine,
     Euclidean,
     DotProduct,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum IndexType {
     Flat,
     Hnsw,
@@ -149,6 +151,64 @@ impl Collection {
         }
 
         search_results
+    }
+}
+
+impl Collection {
+    pub fn to_snapshot(&self) -> CollectionData {
+        CollectionData {
+            id: self.id.to_string(),
+            name: self.name.clone(),
+            dimension: self.dimension,
+            metric: self.metric,
+            index: self.index.snapshot(),
+            metadata: self.metadata.clone(),
+            external_ids: self.external_ids.clone(),
+        }
+    }
+
+    pub fn from_snapshot(data: CollectionData) -> Result<Self, String> {
+        let id = data.id.parse::<Ulid>().map_err(|e| e.to_string())?;
+        let index: Box<dyn Index> = match data.index {
+            IndexSnapshot::Flat { vectors } => Box::new(FlatIndex::from_snapshot(
+                data.dimension,
+                data.metric,
+                vectors,
+            )),
+            IndexSnapshot::Hnsw {
+                vectors,
+                nodes,
+                entry_point,
+                max_layer,
+                m,
+                m_max0,
+                ef_construction,
+                ef_search,
+                level_mult,
+            } => Box::new(HnswIndex::from_snapshot(
+                data.dimension,
+                data.metric,
+                vectors,
+                nodes,
+                entry_point,
+                max_layer,
+                m,
+                m_max0,
+                ef_construction,
+                ef_search,
+                level_mult,
+            )),
+        };
+
+        Ok(Self {
+            id,
+            name: data.name,
+            dimension: data.dimension,
+            metric: data.metric,
+            index,
+            metadata: data.metadata,
+            external_ids: data.external_ids,
+        })
     }
 }
 

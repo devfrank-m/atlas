@@ -1,6 +1,7 @@
 use crate::definitions::collections::Metric;
 use crate::definitions::results::IndexSearchResult;
 use crate::index::base::Index;
+use crate::persistence::IndexSnapshot;
 use crate::search::heap::TopKHeap;
 use crate::similarity;
 
@@ -8,6 +9,16 @@ pub struct FlatIndex {
     pub vectors: Vec<Vec<f32>>,
     pub dimension: usize,
     pub metric: Metric,
+}
+
+impl FlatIndex {
+    pub fn from_snapshot(dimension: usize, metric: Metric, vectors: Vec<Vec<f32>>) -> Self {
+        Self {
+            vectors,
+            dimension,
+            metric,
+        }
+    }
 }
 
 impl Index for FlatIndex {
@@ -50,5 +61,11 @@ impl Index for FlatIndex {
 
     fn len(&self) -> usize {
         self.vectors.len()
+    }
+
+    fn snapshot(&self) -> IndexSnapshot {
+        IndexSnapshot::Flat {
+            vectors: self.vectors.clone(),
+        }
     }
 }

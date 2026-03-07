@@ -2,6 +2,7 @@ pub mod collections;
 pub mod schemas;
 
 use crate::definitions::collections::Collection;
+use crate::persistence::CollectionStore;
 use axum::{
     Router,
     routing::{get, post},
@@ -9,24 +10,52 @@ use axum::{
 use collections::{create_collection, get_collection, insert_vector, search_collection};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
 use ulid::Ulid;
 
 pub type AppState = Arc<AppStateInner>;
 
-pub struct AppStateInner {
-    pub collections: Mutex<HashMap<Ulid, Collection>>,
+pub enum PersistEvent {
+    Dirty(Ulid),
+    Delete(Ulid),
 }
 
-impl Default for AppStateInner {
-    fn default() -> Self {
-        Self::new()
-    }
+pub struct AppStateInner {
+    pub collections: Mutex<HashMap<Ulid, Collection>>,
+    pub store: CollectionStore,
+    pub persist_tx: mpsc::Sender<PersistEvent>,
 }
 
 impl AppStateInner {
-    pub fn new() -> Self {
+    pub fn new_with_persistence(
+        data_dir: &str,
+    ) -> std::io::Result<(Self, mpsc::Receiver<PersistEvent>)> {
+        let store = CollectionStore::new(data_dir)?;
+        let collections = store
+            .load_all()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| (c.id, c))
+            .collect();
+        let (persist_tx, persist_rx) = mpsc::channel(256);
+        Ok((
+            Self {
+                collections: Mutex::new(collections),
+                store,
+                persist_tx,
+            },
+            persist_rx,
+        ))
+    }
+
+    pub fn new_for_testing() -> Self {
+        let tmp = std::env::temp_dir().join(format!("atlas_test_{}", Ulid::new()));
+        let store = CollectionStore::new(tmp).expect("failed to create test store");
+        let (persist_tx, _) = mpsc::channel(256);
         Self {
             collections: Mutex::new(HashMap::new()),
+            store,
+            persist_tx,
         }
     }
 }
