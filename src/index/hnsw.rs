@@ -2,13 +2,15 @@ use std::cmp::{Ordering, Reverse};
 use std::collections::BinaryHeap;
 
 use rand::RngExt;
+use serde::{Deserialize, Serialize};
 
 use crate::definitions::collections::Metric;
 use crate::definitions::results::IndexSearchResult;
 use crate::index::base::Index;
+use crate::persistence::{IndexSnapshot, NeighborSnapshot, NodeSnapshot, VectorStorage};
 use crate::similarity;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct Neighbor {
     id: usize,
     distance: f32,
@@ -36,7 +38,7 @@ impl PartialOrd for Neighbor {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Node {
     connections: Vec<Vec<Neighbor>>,
 }
@@ -200,7 +202,7 @@ fn select_neighbors_heuristic(
 }
 
 pub struct HnswIndex {
-    vectors: Vec<f32>,
+    vectors: VectorStorage,
     nodes: Vec<Node>,
     entry_point: Option<usize>,
     max_layer: usize,
@@ -223,7 +225,7 @@ impl HnswIndex {
         );
 
         Self {
-            vectors: Vec::new(),
+            vectors: VectorStorage::Owned(Vec::new()),
             nodes: Vec::new(),
             entry_point: None,
             max_layer: 0,
@@ -254,6 +256,54 @@ impl HnswIndex {
         let r: f64 = rand::rng().random_range(0.0..1.0);
         (-r.ln() * self.level_mult).floor() as usize
     }
+
+    pub fn from_snapshot(
+        dimension: usize,
+        metric: Metric,
+        vectors: VectorStorage,
+        nodes: Vec<NodeSnapshot>,
+        entry_point: Option<usize>,
+        max_layer: usize,
+        m: usize,
+        m_max0: usize,
+        ef_construction: usize,
+        ef_search: usize,
+        level_mult: f64,
+    ) -> Self {
+        let nodes = nodes
+            .into_iter()
+            .map(|ns| Node {
+                connections: ns
+                    .connections
+                    .into_iter()
+                    .map(|layer| {
+                        layer
+                            .into_iter()
+                            .map(|nb| Neighbor {
+                                id: nb.id,
+                                distance: nb.distance,
+                            })
+                            .collect()
+                    })
+                    .collect(),
+            })
+            .collect();
+
+        Self {
+            vectors,
+            nodes,
+            entry_point,
+            max_layer,
+            dimension,
+            metric,
+            m,
+            m_max0,
+            ef_construction,
+            ef_search,
+            level_mult,
+            insert_scratch: SearchScratch::new(),
+        }
+    }
 }
 
 impl Index for HnswIndex {
@@ -264,10 +314,11 @@ impl Index for HnswIndex {
             "Vector dimension does not match index dimension"
         );
 
-        let id = self.vectors.len() / self.dimension;
-        self.vectors.extend_from_slice(&vector);
-        let level = self.random_level();
+        self.vectors.ensure_owned();
+        let id = self.vectors.as_slice().len() / self.dimension;
+        self.vectors.as_owned_mut().extend_from_slice(&vector);
 
+        let level = self.random_level();
         let mut new_connections = vec![Vec::new(); level + 1];
 
         if let Some(ep) = self.entry_point {
@@ -275,7 +326,7 @@ impl Index for HnswIndex {
 
             for l in ((level + 1)..=self.max_layer).rev() {
                 let result = search_layer_static(
-                    &self.vectors,
+                    self.vectors.as_slice(),
                     &self.nodes,
                     self.dimension,
                     self.metric,
@@ -293,7 +344,7 @@ impl Index for HnswIndex {
             let top = level.min(self.max_layer);
             for l in (0..=top).rev() {
                 let mut neighbors = search_layer_static(
-                    &self.vectors,
+                    self.vectors.as_slice(),
                     &self.nodes,
                     self.dimension,
                     self.metric,
@@ -307,7 +358,7 @@ impl Index for HnswIndex {
                 let m = if l == 0 { self.m_max0 } else { self.m };
 
                 let selected = select_neighbors_heuristic(
-                    &self.vectors,
+                    self.vectors.as_slice(),
                     self.dimension,
                     self.metric,
                     &mut neighbors,
@@ -340,7 +391,7 @@ impl Index for HnswIndex {
                             let mut candidates =
                                 std::mem::take(&mut self.nodes[neighbor_id].connections[l]);
                             let pruned = select_neighbors_heuristic(
-                                &self.vectors,
+                                self.vectors.as_slice(),
                                 self.dimension,
                                 self.metric,
                                 &mut candidates,
@@ -357,7 +408,6 @@ impl Index for HnswIndex {
                 self.entry_point = Some(id);
             }
         } else {
-            // First element
             self.nodes.push(Node {
                 connections: new_connections,
             });
@@ -377,13 +427,14 @@ impl Index for HnswIndex {
             return Vec::new();
         }
 
+        let vectors = self.vectors.as_slice();
         let mut scratch = SearchScratch::new();
         let ep = self.entry_point.unwrap();
         let mut current_ep = vec![ep];
 
         for l in (1..=self.max_layer).rev() {
             let result = search_layer_static(
-                &self.vectors,
+                vectors,
                 &self.nodes,
                 self.dimension,
                 self.metric,
@@ -400,7 +451,7 @@ impl Index for HnswIndex {
 
         let ef = self.ef_search.max(k);
         let results = search_layer_static(
-            &self.vectors,
+            vectors,
             &self.nodes,
             self.dimension,
             self.metric,
@@ -422,14 +473,45 @@ impl Index for HnswIndex {
     }
 
     fn get(&self, id: usize) -> Option<&[f32]> {
-        if id * self.dimension < self.vectors.len() {
-            Some(get_vector(&self.vectors, self.dimension, id))
-        } else {
-            None
-        }
+        let vectors = self.vectors.as_slice();
+        let start = id.checked_mul(self.dimension)?;
+        let end = start.checked_add(self.dimension)?;
+        vectors.get(start..end)
     }
 
     fn len(&self) -> usize {
-        self.vectors.len() / self.dimension
+        self.vectors.as_slice().len() / self.dimension
+    }
+
+    fn snapshot(&self) -> IndexSnapshot {
+        IndexSnapshot::Hnsw {
+            vectors: VectorStorage::Owned(self.vectors.as_slice().to_vec()),
+            nodes: self
+                .nodes
+                .iter()
+                .map(|n| NodeSnapshot {
+                    connections: n
+                        .connections
+                        .iter()
+                        .map(|layer| {
+                            layer
+                                .iter()
+                                .map(|nb| NeighborSnapshot {
+                                    id: nb.id,
+                                    distance: nb.distance,
+                                })
+                                .collect()
+                        })
+                        .collect(),
+                })
+                .collect(),
+            entry_point: self.entry_point,
+            max_layer: self.max_layer,
+            m: self.m,
+            m_max0: self.m_max0,
+            ef_construction: self.ef_construction,
+            ef_search: self.ef_search,
+            level_mult: self.level_mult,
+        }
     }
 }

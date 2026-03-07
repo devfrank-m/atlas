@@ -5,7 +5,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 fn test_server() -> TestServer {
-    let state: AppState = Arc::new(AppStateInner::new());
+    let state: AppState = Arc::new(AppStateInner::new_for_testing());
     TestServer::new(build_router(state)).unwrap()
 }
 

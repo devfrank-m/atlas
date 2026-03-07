@@ -1,12 +1,13 @@
-use crate::api::AppState;
 use crate::api::schemas::{
     CollectionCreateRequest, CollectionCreateResponse, CollectionDetailResponse, SearchRequest,
     SearchResponse, SearchResultResponse, VectorInsertRequest, VectorInsertResponse,
 };
-use crate::common::api::{bad_request, not_found};
+use crate::api::{AppState, PersistEvent};
+use crate::common::api::{bad_request, internal_server_error, not_found};
 use crate::common::utils::parse_ulid;
 use crate::definitions::collections::{Collection, IndexType, Metric};
 use crate::definitions::errors::ValidationError;
+use crate::persistence::WalRecord;
 use axum::{
     Json,
     extract::{Path, State},
@@ -62,12 +63,10 @@ pub async fn create_collection(
         id: collection.id.to_string(),
         name: collection.name.clone(),
     };
+    let id = collection.id;
 
-    state
-        .collections
-        .lock()
-        .unwrap()
-        .insert(collection.id, collection);
+    state.collections.lock().unwrap().insert(id, collection);
+    let _ = state.persist_tx.try_send(PersistEvent::Dirty(id));
 
     (StatusCode::CREATED, Json(resp)).into_response()
 }
@@ -122,7 +121,21 @@ pub async fn insert_vector(
                 ));
             }
             let vector_id = col.index.len();
+
+            if let Err(e) = state.store.wal_append(
+                &ulid.to_string(),
+                &WalRecord::Insert {
+                    vector: req.vector.clone(),
+                    metadata: req.metadata.clone(),
+                    external_id: req.external_id.clone(),
+                },
+            ) {
+                tracing::error!("WAL append failed for {ulid}: {e}");
+                return internal_server_error("Failed to persist write");
+            }
+
             col.insert(req.vector, req.metadata, req.external_id);
+            let _ = state.persist_tx.try_send(PersistEvent::Dirty(ulid));
             (
                 StatusCode::CREATED,
                 Json(VectorInsertResponse { id: vector_id }),
