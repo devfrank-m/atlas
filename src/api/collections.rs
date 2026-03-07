@@ -3,7 +3,7 @@ use crate::api::schemas::{
     SearchResponse, SearchResultResponse, VectorInsertRequest, VectorInsertResponse,
 };
 use crate::api::{AppState, PersistEvent};
-use crate::common::api::{bad_request, not_found};
+use crate::common::api::{bad_request, internal_server_error, not_found};
 use crate::common::utils::parse_ulid;
 use crate::definitions::collections::{Collection, IndexType, Metric};
 use crate::definitions::errors::ValidationError;
@@ -131,6 +131,7 @@ pub async fn insert_vector(
                 },
             ) {
                 tracing::error!("WAL append failed for {ulid}: {e}");
+                return internal_server_error("Failed to persist write");
             }
 
             col.insert(req.vector, req.metadata, req.external_id);

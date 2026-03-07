@@ -12,22 +12,32 @@ pub const HEADER_SIZE: usize = 20;
 const MAGIC: &[u8; 4] = b"ATVX";
 const VERSION: u32 = 1;
 
-pub fn vec_path(data_dir: &Path, id: &str) -> PathBuf {
-    data_dir.join(format!("{id}.vec"))
+pub fn vec_path(data_dir: &Path, id: &str, generation: u64) -> PathBuf {
+    data_dir.join(format!("{id}.{generation}.vec"))
 }
 
 pub fn write(
     data_dir: &Path,
     id: &str,
+    generation: u64,
     vectors: &[f32],
     dimension: u32,
 ) -> Result<VectorBlobRef, String> {
+    if dimension == 0 && !vectors.is_empty() {
+        return Err("dimension is 0 but vectors is non-empty".into());
+    }
+    if dimension > 0 && vectors.len() % dimension as usize != 0 {
+        return Err(format!(
+            "vectors length {} is not a multiple of dimension {dimension}",
+            vectors.len()
+        ));
+    }
     let count = if dimension == 0 {
         0
     } else {
         vectors.len() as u64 / dimension as u64
     };
-    let path = vec_path(data_dir, id);
+    let path = vec_path(data_dir, id, generation);
     let tmp = path.with_extension("vec.tmp");
 
     let mut buf = Vec::with_capacity(HEADER_SIZE + vectors.len() * 4);
@@ -41,7 +51,7 @@ pub fn write(
     fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
 
     Ok(VectorBlobRef {
-        file: format!("{id}.vec"),
+        file: format!("{id}.{generation}.vec"),
         count,
         dimension,
         offset_bytes: HEADER_SIZE as u64,
@@ -81,6 +91,13 @@ fn validate_header(mmap: &Mmap, blob: &VectorBlobRef) -> Result<(), String> {
         return Err(format!(
             "count mismatch: expected {}, got {count}",
             blob.count
+        ));
+    }
+    let expected_len = HEADER_SIZE + count as usize * dimension as usize * 4;
+    if mmap.len() != expected_len {
+        return Err(format!(
+            "vec file size mismatch: expected {expected_len} bytes, got {}",
+            mmap.len()
         ));
     }
     Ok(())

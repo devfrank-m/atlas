@@ -17,3 +17,11 @@ pub fn not_found(msg: impl Into<String>) -> axum::response::Response {
     )
         .into_response()
 }
+
+pub fn internal_server_error(msg: impl Into<String>) -> axum::response::Response {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::json!({"error": msg.into()})),
+    )
+        .into_response()
+}

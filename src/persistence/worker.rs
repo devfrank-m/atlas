@@ -34,6 +34,18 @@ pub async fn persistence_worker(
                 }
             },
             _ = &mut shutdown => {
+                rx.close();
+                while let Ok(evt) = rx.try_recv() {
+                    match evt {
+                        PersistEvent::Dirty(id) => { dirty.insert(id); }
+                        PersistEvent::Delete(id) => {
+                            dirty.remove(&id);
+                            if let Err(e) = state.store.delete(&id.to_string()) {
+                                tracing::error!("Failed to delete {id}: {e}");
+                            }
+                        }
+                    }
+                }
                 info!("Persistence worker shutting down, flushing {} dirty collection(s)", dirty.len());
                 flush(&state, &mut dirty);
                 break;

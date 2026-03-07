@@ -45,13 +45,24 @@ impl CollectionStore {
 
     pub fn save(&self, collection: &Collection) -> Result<(), String> {
         let id = collection.id.to_string();
-        let generation = self.read_generation(&id) + 1;
+        let old_generation = self.read_generation(&id);
+        let new_generation = old_generation + 1;
         let data = collection.to_snapshot();
-        let disk_data = self.to_disk_data(data, &id)?;
-        self.write_snapshot(disk_data, &id, generation)
+        let disk_data = self.to_disk_data(data, &id, new_generation)?;
+        self.write_snapshot(disk_data, &id, new_generation)?;
+        let old_blob = self.data_dir.join(format!("{id}.{old_generation}.vec"));
+        if old_blob.exists() {
+            let _ = fs::remove_file(&old_blob);
+        }
+        Ok(())
     }
 
-    fn to_disk_data(&self, data: CollectionData, id: &str) -> Result<DiskCollectionData, String> {
+    fn to_disk_data(
+        &self,
+        data: CollectionData,
+        id: &str,
+        generation: u64,
+    ) -> Result<DiskCollectionData, String> {
         let disk_index = match data.index {
             IndexSnapshot::Flat { vectors } => DiskIndexSnapshot::Flat { vectors },
             IndexSnapshot::Hnsw {
@@ -68,6 +79,7 @@ impl CollectionStore {
                 let blob = vectors::write(
                     &self.data_dir,
                     id,
+                    generation,
                     vectors.as_slice(),
                     data.dimension as u32,
                 )?;
@@ -193,8 +205,8 @@ impl CollectionStore {
 
         if self.wal_path(id).exists() {
             self.wal_replay(id, &mut collection)?;
-            self.save(&collection)?;
             self.wal_truncate(id)?;
+            self.save(&collection)?;
         }
 
         Ok(collection)
@@ -228,13 +240,18 @@ impl CollectionStore {
     }
 
     pub fn delete(&self, id: &str) -> Result<(), String> {
-        for path in [
-            self.collection_path(id),
-            self.wal_path(id),
-            self.data_dir.join(format!("{id}.vec")),
-        ] {
+        for path in [self.collection_path(id), self.wal_path(id)] {
             if path.exists() {
                 fs::remove_file(&path).map_err(|e| e.to_string())?;
+            }
+        }
+        if let Ok(entries) = fs::read_dir(&self.data_dir) {
+            for entry in entries.flatten() {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                if name.starts_with(&format!("{id}.")) && name.ends_with(".vec") {
+                    let _ = fs::remove_file(entry.path());
+                }
             }
         }
         Ok(())
