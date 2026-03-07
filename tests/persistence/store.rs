@@ -71,7 +71,7 @@ fn test_save_and_load_hnsw() {
 
     store.save(&col).unwrap();
 
-    assert!(dir.join(format!("{}.vec", col.id)).exists());
+    assert!(dir.join(format!("{}.1.vec", col.id)).exists());
 
     let loaded = store.load(&col.id.to_string()).unwrap();
 
@@ -210,12 +210,12 @@ fn test_delete_removes_json_and_vec_files() {
     store.save(&col).unwrap();
 
     assert!(dir.join(format!("{id}.json")).exists());
-    assert!(dir.join(format!("{id}.vec")).exists());
+    assert!(dir.join(format!("{id}.1.vec")).exists());
 
     store.delete(&id).unwrap();
 
     assert!(!dir.join(format!("{id}.json")).exists());
-    assert!(!dir.join(format!("{id}.vec")).exists());
+    assert!(!dir.join(format!("{id}.1.vec")).exists());
 }
 
 #[test]
