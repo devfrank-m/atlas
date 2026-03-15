@@ -8,7 +8,9 @@ COPY src ./src
 RUN touch src/main.rs && cargo build --release
 
 FROM debian:trixie-slim
-RUN useradd --system --no-create-home --shell /usr/sbin/nologin atlas
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin atlas \
+    && mkdir -p /data && chown atlas /data
 COPY --from=builder /app/target/release/atlas /usr/local/bin/atlas
 USER atlas
+ENV ATLAS_DATA_DIR=/data
 CMD ["atlas"]
