@@ -16,7 +16,9 @@ rand = "0.10.0"
 sha2 = "0.10.9"
 memmap2 = "0.9.10"
 bytemuck = "1.25.0"
+utoipa = { version = "5.4.0", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
 [dev-dependencies]
-axum-test = "18.7.0"
+axum-test = "19.1.1"
 tower-http = "0.6.8"

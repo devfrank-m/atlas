@@ -12,6 +12,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use ulid::Ulid;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 pub type AppState = Arc<AppStateInner>;
 
@@ -60,6 +62,28 @@ impl AppStateInner {
     }
 }
 
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        collections::create_collection,
+        collections::get_collection,
+        collections::insert_vector,
+        collections::search_collection,
+    ),
+    components(schemas(
+        schemas::CollectionCreateRequest,
+        schemas::CollectionCreateResponse,
+        schemas::CollectionDetailResponse,
+        schemas::VectorInsertRequest,
+        schemas::VectorInsertResponse,
+        schemas::SearchRequest,
+        schemas::SearchResultResponse,
+        schemas::SearchResponse,
+        crate::definitions::filter::Filter,
+    ))
+)]
+pub struct ApiDoc;
+
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/collections", post(create_collection))
@@ -67,4 +91,5 @@ pub fn build_router(state: AppState) -> Router {
         .route("/collections/{id}/vectors", post(insert_vector))
         .route("/collections/{id}/search", post(search_collection))
         .with_state(state)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
 }

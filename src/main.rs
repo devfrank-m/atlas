@@ -59,7 +59,7 @@ async fn main() {
     .await
     .expect("failed to bind to address");
     info!(
-        "HTTP server listening on {}:{}",
+        "HTTP server listening on http://{}:{}",
         settings::SETTINGS.host(),
         settings::SETTINGS.port()
     );
