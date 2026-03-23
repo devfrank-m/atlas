@@ -42,6 +42,15 @@ fn parse_index(s: &str) -> Result<IndexType, ValidationError> {
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/collections",
+    request_body = CollectionCreateRequest,
+    responses(
+        (status = 201, description = "Collection created", body = CollectionCreateResponse),
+        (status = 400, description = "Invalid metric or index type"),
+    )
+)]
 pub async fn create_collection(
     State(state): State<AppState>,
     Json(req): Json<CollectionCreateRequest>,
@@ -71,6 +80,18 @@ pub async fn create_collection(
     (StatusCode::CREATED, Json(resp)).into_response()
 }
 
+#[utoipa::path(
+    get,
+    path = "/collections/{id}",
+    params(
+        ("id" = String, Path, description = "Collection ULID"),
+    ),
+    responses(
+        (status = 200, description = "Collection details", body = CollectionDetailResponse),
+        (status = 400, description = "Invalid ULID"),
+        (status = 404, description = "Collection not found"),
+    )
+)]
 pub async fn get_collection(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -98,6 +119,20 @@ pub async fn get_collection(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/collections/{id}/vectors",
+    params(
+        ("id" = String, Path, description = "Collection ULID"),
+    ),
+    request_body = VectorInsertRequest,
+    responses(
+        (status = 201, description = "Vector inserted", body = VectorInsertResponse),
+        (status = 400, description = "Invalid ULID or dimension mismatch"),
+        (status = 404, description = "Collection not found"),
+        (status = 500, description = "Persistence error"),
+    )
+)]
 pub async fn insert_vector(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -146,6 +181,19 @@ pub async fn insert_vector(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/collections/{id}/search",
+    params(
+        ("id" = String, Path, description = "Collection ULID"),
+    ),
+    request_body = SearchRequest,
+    responses(
+        (status = 200, description = "Search results", body = SearchResponse),
+        (status = 400, description = "Invalid ULID or dimension mismatch"),
+        (status = 404, description = "Collection not found"),
+    )
+)]
 pub async fn search_collection(
     State(state): State<AppState>,
     Path(id): Path<String>,

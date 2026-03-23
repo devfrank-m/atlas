@@ -12,7 +12,7 @@ impl Settings {
     }
 
     pub fn host(&self) -> String {
-        get_setting_from_env_or_default("HOST", "0.0.0.0")
+        get_setting_from_env_or_default("HOST", "127.0.0.1")
     }
 
     pub fn log_level(&self) -> String {
