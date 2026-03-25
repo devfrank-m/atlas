@@ -2,6 +2,7 @@ use atlas::api::{AppState, AppStateInner, build_router};
 use atlas::persistence::persistence_worker;
 use atlas::settings;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::oneshot;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -64,10 +65,27 @@ async fn main() {
         settings::SETTINGS.port()
     );
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+    let (signal_tx, signal_rx) = tokio::sync::watch::channel(false);
+
+    tokio::spawn(async move {
+        shutdown_signal().await;
+        let _ = signal_tx.send(true);
+    });
+
+    let mut rx_serve = signal_rx.clone();
+    let mut rx_timeout = signal_rx;
+
+    tokio::select! {
+        result = axum::serve(listener, app).with_graceful_shutdown(async move {
+            rx_serve.wait_for(|v| *v).await.ok();
+        }) => { result.unwrap(); }
+        _ = async move {
+            rx_timeout.wait_for(|v| *v).await.ok();
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        } => {
+            info!("graceful shutdown timed out, forcing exit");
+        }
+    }
 
     info!("HTTP server shut down, waiting for persistence worker");
     let _ = worker_shutdown_tx.send(());
