@@ -4,12 +4,11 @@ pub mod schemas;
 use crate::api::schemas::HealthResponse;
 use crate::definitions::collections::Collection;
 use crate::persistence::CollectionStore;
+use axum::http::StatusCode;
 use axum::{
-    Json,
-    Router,
+    Json, Router,
     routing::{get, post},
 };
-use axum::http::StatusCode;
 use collections::{create_collection, get_collection, insert_vector, search_collection};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
