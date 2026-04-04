@@ -1,12 +1,15 @@
 pub mod collections;
 pub mod schemas;
 
+use crate::api::schemas::HealthResponse;
 use crate::definitions::collections::Collection;
 use crate::persistence::CollectionStore;
 use axum::{
+    Json,
     Router,
     routing::{get, post},
 };
+use axum::http::StatusCode;
 use collections::{create_collection, get_collection, insert_vector, search_collection};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -65,12 +68,14 @@ impl AppStateInner {
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        health,
         collections::create_collection,
         collections::get_collection,
         collections::insert_vector,
         collections::search_collection,
     ),
     components(schemas(
+        schemas::HealthResponse,
         schemas::CollectionCreateRequest,
         schemas::CollectionCreateResponse,
         schemas::CollectionDetailResponse,
@@ -84,8 +89,25 @@ impl AppStateInner {
 )]
 pub struct ApiDoc;
 
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Service health", body = HealthResponse),
+    )
+)]
+pub async fn health() -> (StatusCode, Json<HealthResponse>) {
+    (
+        StatusCode::OK,
+        Json(HealthResponse {
+            status: "ok".to_string(),
+        }),
+    )
+}
+
 pub fn build_router(state: AppState) -> Router {
     Router::new()
+        .route("/health", get(health))
         .route("/collections", post(create_collection))
         .route("/collections/{id}", get(get_collection))
         .route("/collections/{id}/vectors", post(insert_vector))
