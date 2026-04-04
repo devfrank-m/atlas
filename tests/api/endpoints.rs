@@ -10,6 +10,15 @@ fn test_server() -> TestServer {
 }
 
 #[tokio::test]
+async fn test_health() {
+    let server = test_server();
+    let resp = server.get("/health").await;
+    resp.assert_status(StatusCode::OK);
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["status"], "ok");
+}
+
+#[tokio::test]
 async fn test_create_collection() {
     let server = test_server();
     let resp = server

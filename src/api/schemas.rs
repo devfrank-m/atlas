@@ -1,6 +1,12 @@
 use crate::definitions::filter::Filter;
 use crate::definitions::metadata::Metadata;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub struct HealthResponse {
+    pub status: String,
+}
+
 // --- Collection ---
 
 #[derive(Serialize, Deserialize, utoipa::ToSchema)]
